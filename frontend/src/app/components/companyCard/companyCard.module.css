@@ -1,0 +1,29 @@
+.card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--off-main-color);
+    color: var(--foreground);
+    padding: 1.5rem 2rem;
+    border-radius: 25px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    max-width: 600px;
+    width: 100%;
+    margin: 1rem auto;
+  }
+  
+  .jobName {
+    font-size: 1.75rem;
+    font-weight: 600;
+    flex: 1;
+  }
+  
+  .details {
+    flex: 2;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
