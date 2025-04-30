@@ -1,13 +1,24 @@
+.submain {
+    border: 1px solid #6c757d;
+    border-radius: 25px;
+    padding: 90px;
+    margin: 20px auto;
+    max-width: 800px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden; 
+}
+
 .title {
     text-align: center;
-    margin-top: 50px;
-    font-size: 60px;
+    font-size: 110px;
     margin-bottom: 0px;
-    padding-bottom: none;
+    padding-top: 20px;
+    padding-bottom: 0px;
+    margin-top: 330px;
 }
 
 .subtitle {
-    font-size: 15px;
+    font-size: 30px;
     text-align: center;
     padding-top: 0px;
     color: gray;
@@ -16,7 +27,7 @@
 .button1 {
     margin: 0 10px;
     cursor: pointer;
-    background-color: #026331;
+    background-color: #2a7ae4;
     color: white;
     border: none;
     border-radius: 5px;
@@ -28,11 +39,11 @@
 }
 
 .button1:hover {
-    background-color: #017e3d;
-    padding-left: 43px;
-    padding-right: 43px;
-    padding-top: 13px;
-    padding-bottom: 13px;
+    background-color: #4395ff;
+    padding-left: 45px;
+    padding-right: 45px;
+    padding-top: 15px;
+    padding-bottom: 15px;
     transition: 0.2s;
 }
 
@@ -44,7 +55,7 @@
 .button2 {
     margin: 0 10px;
     cursor: pointer;
-    background-color: #026331;
+    background-color: #2a7ae4;
     color: white;
     border: none;
     border-radius: 5px;
@@ -57,15 +68,28 @@
 }
 
 .button2:hover {
-    background-color: #017e3d;
-    padding-left: 38px;
-    padding-right: 38px;
-    padding-top: 13px;
-    padding-bottom: 13px;
+    background-color: #4395ff;
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-top: 15px;
+    padding-bottom: 15px;
     transition: 0.2s;
 }
 
 .button2:active {
     opacity: 0.7;
     transition: 0.15s;
+}
+
+.about {
+    margin-bottom: 15px;
+    margin-top: 40px;
+}
+
+.aboutText {
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: justify;
+    max-width: 600px;
+    color: #d4c9c9;
 }
