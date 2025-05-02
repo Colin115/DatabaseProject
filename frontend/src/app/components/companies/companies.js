@@ -7,7 +7,6 @@ const Companies = () => {
   const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
-    // Replace with real API fetch
     const mockData = Array.from({ length: 20 }, (_, i) => ({
       id: i,
       jobName: `Job ${i + 1}`,
@@ -21,10 +20,21 @@ const Companies = () => {
     setCompanies(mockData);
   }, []);
 
+  const handleUpdate = (updatedCompany) => {
+    setCompanies((prev) =>
+      prev.map((comp) => (comp.id === updatedCompany.id ? updatedCompany : comp))
+    );
+    // TODO: make API call here
+  };
+
   return (
     <div className={styles.container}>
       {companies.map((company) => (
-        <CompanyCard key={company.id} {...company} />
+        <CompanyCard
+          key={company.id}
+          {...company}
+          onUpdate={handleUpdate}
+        />
       ))}
     </div>
   );
