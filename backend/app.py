@@ -1,9 +1,11 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import password
 
 app = Flask(__name__, static_folder='static')
+CORS(app, origins=["http://localhost:3000"]) # allow outside source (frontend)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://root:{password.PASSWORD}@localhost:3306/Job_Nest'
 
@@ -18,9 +20,12 @@ db = SQLAlchemy(app)
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
-    looking_for_job = db.Column(db.Boolean, nullable=False)
+    username = db.Column(db.String(255), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True)
+    fname = db.Column(db.String(255), nullable=False)
+    lname = db.Column(db.String(255), nullable=False)
+
 
     resumes = db.relationship('Resume', backref='user', lazy=True)
     posted_jobs = db.relationship('Job', backref='user', lazy=True)
@@ -139,16 +144,20 @@ def create_user():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-    looking_for_job = data.get('looking_for_job', False)
+    username = data.get('username')
+    lname = data.get('lastName')
+    fname = data.get('firstName')
 
-    if not email or not password:
-        return {'message': 'Email and password are required'}, 400
+    print(data, email, password)
+    
+    if None in (email, password, username, fname, lname):
+        return {'message': 'Email, password, username, and first/last name are required'}, 400
 
     if User.query.filter_by(email=email).first():
         return {'message': 'Email already exists'}, 409
 
     hashed_password = generate_password_hash(password)
-    user = User(email=email, password=hashed_password, looking_for_job=looking_for_job)
+    user = User(email=email, password=hashed_password, username=username, fname=fname, lname=lname)
     db.session.add(user)
     db.session.commit()
     return {'message': 'User created', 'user_id': user.user_id}, 201
@@ -351,5 +360,6 @@ def get_interested_jobs(user_id):
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        db.drop_all()   # Drops all existing tables
+        db.create_all() # Recreates tables from models
     app.run(host='0.0.0.0', port=80)
