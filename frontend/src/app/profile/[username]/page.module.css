@@ -1,0 +1,41 @@
+.page {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    gap: 2rem;
+}
+
+.profileHeader {
+    width: 100%;
+    max-width: 1000px;
+    background-color: var(--off-main-color);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profileHeader h2 {
+    margin-bottom: 0.5rem;
+}
+
+.profileContent {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    height: 70vh;
+}
+
+.column {
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+}
