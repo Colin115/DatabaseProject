@@ -1,11 +1,16 @@
 import React from "react";
+import styles from "./resumeCard.module.css";
 
-const ResumeCards = () => {
+const ResumeCard = ({ fileName, uploadDate, fileSize }) => {
   return (
-    <div>
-        <span>Resume</span>
+    <div className={styles.card}>
+      <h2 className={styles.fileName}>{fileName}</h2>
+      <div className={styles.details}>
+        <p><strong>Upload Date:</strong> {uploadDate}</p>
+        <p><strong>File Size:</strong> {fileSize}</p>
+      </div>
     </div>
   );
 };
 
-export default ResumeCards;
+export default ResumeCard;
