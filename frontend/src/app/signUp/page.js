@@ -1,9 +1,12 @@
 "use client";
 import { useState } from "react";
+import { useRouter  } from 'next/navigation';
 import styles from "./page.module.css";
 import Header from "../components/header";
 
 export default function SignUp() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -31,9 +34,9 @@ export default function SignUp() {
 
       if (!res.ok) throw new Error("Failed to create user");
 
-      const result = await res.json();
-      console.log("User created:", result);
-      alert("Account created successfully!");
+      router.push(`/profile/${formData.username}`);
+
+      //redirect(`/profile/colin1`);
       // Optionally redirect to login
     } catch (err) {
       console.error(err);

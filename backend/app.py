@@ -156,7 +156,7 @@ def create_user():
     if User.query.filter_by(email=email).first():
         return {'message': 'Email already exists'}, 409
 
-    hashed_password = generate_password_hash(password)
+    hashed_password = password # todo implement hash
     user = User(email=email, password=hashed_password, username=username, fname=fname, lname=lname)
     db.session.add(user)
     db.session.commit()
@@ -166,11 +166,13 @@ def create_user():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    email = data.get('email')
+    username = data.get('username')
     password = data.get('password')
 
-    user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
+    user = User.query.filter_by(username=username).first()
+    print(username, password)
+    print(user.password)
+    if not user or user.password != password:
         return {'message': 'Invalid email or password'}, 401
 
     return {'message': 'Login successful', 'user_id': user.user_id}, 200
