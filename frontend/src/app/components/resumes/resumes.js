@@ -23,7 +23,23 @@ const Resumes = () => {
   };
 
   const openFileExplorer = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleRemoveResume = (indexToRemove) => {
+    setUploadedResumes((prevResumes) =>
+      prevResumes.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const handleUpdateResume = (indexToUpdate, updatedData) => {
+    setUploadedResumes((prevResumes) =>
+      prevResumes.map((resume, index) =>
+        index === indexToUpdate ? { ...resume, ...updatedData } : resume
+      )
+    );
   };
 
   return (
@@ -47,6 +63,8 @@ const Resumes = () => {
             fileName={resume.fileName}
             uploadDate={resume.uploadDate}
             fileSize={resume.fileSize}
+            onRemove={() => handleRemoveResume(index)}
+            onUpdate={(updatedData) => handleUpdateResume(index, updatedData)}
           />
         ))}
       </div>
