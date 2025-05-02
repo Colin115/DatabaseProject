@@ -173,6 +173,9 @@ a.secondary {
   padding-right: 100px;
   padding-left: 100px;
   padding-bottom: 90px;
+  margin: 0;
+  padding-top: 20px;
+  box-sizing: border-box;
   max-width: 1000px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden; 
