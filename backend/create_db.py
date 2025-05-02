@@ -1,11 +1,12 @@
 import pymysql
+import password
 
 try:
     # Connect to MySQL Server (not to a database yet)
     connection = pymysql.connect(
         host="localhost",
         user="root",
-        password="Arc-151912",  # replace with your MySQL root password
+        password=password.PASSWORD,  # replace with your MySQL root password
     )
 
     cursor = connection.cursor()

@@ -1,0 +1,1 @@
+PASSWORD = 'password' # replace with your password
