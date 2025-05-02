@@ -1,10 +1,354 @@
-from flask import Flask
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
 app = Flask(__name__, static_folder='static')
 
-@app.route("/")
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Arc-151912@localhost:3306/sys'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+db = SQLAlchemy(app)
+
+# ---------- MODELS ----------
+
+
+class User(db.Model):
+    __tablename__ = 'users'
+    user_id = db.Column(db.Integer, primary_key=True)
+    looking_for_job = db.Column(db.Boolean, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+
+    resumes = db.relationship('Resume', backref='user', lazy=True)
+    posted_jobs = db.relationship('Job', backref='user', lazy=True)
+
+
+class UserInterestedJob(db.Model):
+    __tablename__ = 'user_interested_jobs'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
+
+
+class Resume(db.Model):
+    __tablename__ = 'resumes'
+    resume_style = db.Column(db.String(100), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    contact_info = db.Column(db.Text, nullable=False)
+
+    skills = db.relationship('Skill', backref='resume', lazy=True)
+    educations = db.relationship('Education', backref='resume', lazy=True)
+    experiences = db.relationship('Experience', backref='resume', lazy=True)
+    submissions = db.relationship('HandedTo', backref='resume', lazy=True)
+
+
+class Skill(db.Model):
+    __tablename__ = 'skills'
+    skill_name = db.Column(db.String(100), primary_key=True)
+    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+
+
+class Education(db.Model):
+    __tablename__ = 'education'
+    education_received = db.Column(db.String(255), primary_key=True)
+    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+
+
+class Experience(db.Model):
+    __tablename__ = 'experience'
+    experience_worked = db.Column(db.String(255), primary_key=True)
+    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+
+
+class Company(db.Model):
+    __tablename__ = 'companies'
+    company_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, unique=True)
+    location = db.Column(db.String(255), nullable=False)
+
+    jobs = db.relationship('Job', backref='company', lazy=True)
+    submissions = db.relationship('HandedTo', backref='company', lazy=True)
+
+
+class HandedTo(db.Model):
+    __tablename__ = 'handed_to'
+    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), primary_key=True)
+    submission_date = db.Column(db.Date, nullable=False)
+
+
+class Job(db.Model):
+    __tablename__ = 'jobs'
+    job_id = db.Column(db.Integer, primary_key=True)
+    availability = db.Column(db.Boolean, nullable=False)
+    salary = db.Column(db.Numeric(10, 2), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), nullable=False)
+    requirements = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+
+    economy = db.relationship('Economy', backref='job', uselist=False)
+    management = db.relationship('Management', backref='job', uselist=False)
+    engineering = db.relationship('Engineering', backref='job', uselist=False)
+    medical = db.relationship('Medical', backref='job', uselist=False)
+
+
+class Economy(db.Model):
+    __tablename__ = 'economy'
+    economy_id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
+
+
+class Management(db.Model):
+    __tablename__ = 'management'
+    management_id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
+
+
+class Engineering(db.Model):
+    __tablename__ = 'engineering'
+    engineering_id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
+
+
+class Medical(db.Model):
+    __tablename__ = 'medical'
+    medical_id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
+
+
+# ---------- ROUTES ----------
+
+@app.route('/')
 def home():
-    return "<h1>HOME</h1>"
+    return '<h1>HOME</h1>'
+
+@app.route('/test_db')
+def test_db():
+    try:
+        # Simple test query
+        db.session.execute('SELECT 1')
+        return {'message': 'Database connected successfully'}, 200
+    except Exception as e:
+        return {'message': 'Database connection failed', 'error': str(e)}, 500
+
+
+@app.route('/create_user', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    looking_for_job = data.get('looking_for_job', False)
+
+    if not email or not password:
+        return {'message': 'Email and password are required'}, 400
+
+    if User.query.filter_by(email=email).first():
+        return {'message': 'Email already exists'}, 409
+
+    hashed_password = generate_password_hash(password)
+    user = User(email=email, password=hashed_password, looking_for_job=looking_for_job)
+    db.session.add(user)
+    db.session.commit()
+    return {'message': 'User created', 'user_id': user.user_id}, 201
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not check_password_hash(user.password, password):
+        return {'message': 'Invalid email or password'}, 401
+
+    return {'message': 'Login successful', 'user_id': user.user_id}, 200
+
+
+@app.route('/edit_user/<int:user_id>', methods=['PUT'])
+def edit_user(user_id):
+    data = request.get_json()
+    user = User.query.get(user_id)
+    if not user:
+        return {'message': 'User not found'}, 404
+
+    user.email = data.get('email', user.email)
+    if 'password' in data:
+        user.password = generate_password_hash(data['password'])
+    user.looking_for_job = data.get('looking_for_job', user.looking_for_job)
+    db.session.commit()
+    return {'message': 'User updated'}, 200
+
+
+@app.route('/delete_user/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return {'message': 'User not found'}, 404
+
+    db.session.delete(user)
+    db.session.commit()
+    return {'message': 'User deleted'}, 200
+
+
+@app.route('/create_resume', methods=['POST'])
+def create_resume():
+    data = request.get_json()
+    resume_style = data.get('resume_style')
+    user_id = data.get('user_id')
+    contact_info = data.get('contact_info')
+
+    if not all([resume_style, user_id, contact_info]):
+        return {'message': 'All fields are required'}, 400
+
+    if Resume.query.filter_by(user_id=user_id).first():
+        return {'message': 'Resume already exists for this user'}, 409
+
+    resume = Resume(resume_style=resume_style, user_id=user_id, contact_info=contact_info)
+    db.session.add(resume)
+    db.session.commit()
+    return {'message': 'Resume created'}, 201
+
+
+@app.route('/add_skill', methods=['POST'])
+def add_skill():
+    data = request.get_json()
+    skill_name = data.get('skill_name')
+    resume_style = data.get('resume_style')
+
+    skill = Skill(skill_name=skill_name, resume_style=resume_style)
+    db.session.add(skill)
+    db.session.commit()
+    return {'message': 'Skill added'}, 201
+
+
+@app.route('/add_education', methods=['POST'])
+def add_education():
+    data = request.get_json()
+    education_received = data.get('education_received')
+    resume_style = data.get('resume_style')
+
+    edu = Education(education_received=education_received, resume_style=resume_style)
+    db.session.add(edu)
+    db.session.commit()
+    return {'message': 'Education added'}, 201
+
+
+@app.route('/add_experience', methods=['POST'])
+def add_experience():
+    data = request.get_json()
+    experience_worked = data.get('experience_worked')
+    resume_style = data.get('resume_style')
+
+    exp = Experience(experience_worked=experience_worked, resume_style=resume_style)
+    db.session.add(exp)
+    db.session.commit()
+    return {'message': 'Experience added'}, 201
+
+
+@app.route('/create_company', methods=['POST'])
+def create_company():
+    data = request.get_json()
+    name = data.get('name')
+    location = data.get('location')
+
+    if Company.query.filter_by(name=name).first():
+        return {'message': 'Company already exists'}, 409
+
+    company = Company(name=name, location=location)
+    db.session.add(company)
+    db.session.commit()
+    return {'message': 'Company created', 'company_id': company.company_id}, 201
+
+
+@app.route('/create_job', methods=['POST'])
+def create_job():
+    data = request.get_json()
+    job = Job(
+        job_id=data['job_id'],
+        availability=data['availability'],
+        salary=data['salary'],
+        company_id=data['company_id'],
+        requirements=data['requirements'],
+        user_id=data['user_id']
+    )
+    db.session.add(job)
+    db.session.commit()
+    return {'message': 'Job created'}, 201
+
+
+@app.route('/add_econ_job', methods=['POST'])
+def add_econ_job():
+    data = request.get_json()
+    eco = Economy(economy_id=data['economy_id'], job_id=data['job_id'])
+    db.session.add(eco)
+    db.session.commit()
+    return {'message': 'Economy job added'}, 201
+
+
+# ---------- QUERIES ----------
+
+@app.route('/users', methods=['GET'])
+def get_all_users():
+    users = User.query.all()
+    return jsonify([{
+        'user_id': user.user_id,
+        'email': user.email,
+        'looking_for_job': user.looking_for_job
+    } for user in users])
+
+
+@app.route('/resumes', methods=['GET'])
+def get_all_resumes():
+    resumes = Resume.query.all()
+    return jsonify([{
+        'resume_style': r.resume_style,
+        'user_id': r.user_id,
+        'contact_info': r.contact_info
+    } for r in resumes])
+
+
+@app.route('/jobs', methods=['GET'])
+def get_all_jobs():
+    jobs = Job.query.all()
+    return jsonify([{
+        'job_id': j.job_id,
+        'availability': j.availability,
+        'salary': float(j.salary),
+        'company_id': j.company_id,
+        'requirements': j.requirements,
+        'user_id': j.user_id
+    } for j in jobs])
+
+
+@app.route('/companies', methods=['GET'])
+def get_all_companies():
+    companies = Company.query.all()
+    return jsonify([{
+        'company_id': c.company_id,
+        'name': c.name,
+        'location': c.location
+    } for c in companies])
+
+
+@app.route('/users/<int:user_id>/interested_jobs', methods=['GET'])
+def get_interested_jobs(user_id):
+    job_ids = [t[0] for t in db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).all()]
+    jobs = Job.query.filter(Job.job_id.in_(job_ids)).all()
+    return jsonify([{
+        'job_id': j.job_id,
+        'availability': j.availability,
+        'salary': float(j.salary),
+        'requirements': j.requirements,
+        'company_id': j.company_id,
+        'user_id': j.user_id
+    } for j in jobs])
+
+
+# ---------- APP ENTRY ----------
 
 if __name__ == '__main__':
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=80)
