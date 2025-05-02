@@ -1,6 +1,14 @@
 # Database Project
 
-## Backend
+## About This Project
+We built an application called Nest, an application dedicated to helping you with your job search. Application was built using Next.js.
+
+## Contributors
+1. Ashton Price
+1. Rohit Sayeeganesh
+1. Colin Smith
+
+## Setup Backend
 ### Setup
 1. Set dir as backend
 1. Setup Virtual Env ``` python -m venv venv```
