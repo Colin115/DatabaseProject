@@ -7,12 +7,12 @@ export default function Home() {
     <div className={styles.page}>
       <Header />
       <div className = {styles.submain}>
-        <h1 className = {styles.title}><center>Nest</center></h1>
+        <h1 className = {styles.title}>Nest</h1>
         <span className = {styles.subtitle}><center>By A.R.C.</center></span>
         <div className = {styles.button}>
           <center>
-            <button className={styles.button1}>Login</button> 
-            <button className={styles.button2}>Sign Up</button>
+            <button className={styles.button1}><a href = "/logIn">Login</a></button> 
+            <button className={styles.button2}><a href = "/signUp">Sign Up</a></button>
           </center>
           
         </div>

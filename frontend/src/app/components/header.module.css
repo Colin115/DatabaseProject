@@ -1,11 +1,10 @@
 .main {
-    padding-bottom: 0px;
+    padding: 0px;
     margin-bottom: 0px;
 }
 
 .titleHeader {
-    text-align: left;
-    font-size: 20px;
+    font-size: 15px;
     margin-bottom: 0px;
     color: rgb(136, 136, 136);
 }
