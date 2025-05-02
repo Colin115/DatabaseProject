@@ -1,9 +1,9 @@
 import React from "react";
-
+import styles from "./resumes.module.css"
 const Resumes = () => {
   return (
     <div>
-        <span>Resumes</span>
+        <center><button className = {styles.buttonResume}>Add Resume</button></center>
     </div>
   );
 };
