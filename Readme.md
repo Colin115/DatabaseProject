@@ -22,7 +22,7 @@ We built an application called Nest, an application dedicated to helping you wit
 ## Setup Frontend
 ### Setup
 1. Set dir as frontend
-1. Instal packages ```npm install```
+1. Install packages ```npm install```
 
 ### Run
 ```npm run dev```
