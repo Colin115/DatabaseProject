@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import password
-
+import create_db
 app = Flask(__name__, static_folder='static')
 CORS(app, origins=["http://localhost:3000"]) # allow outside source (frontend)
 
@@ -361,6 +361,7 @@ def get_interested_jobs(user_id):
 # ---------- APP ENTRY ----------
 
 if __name__ == '__main__':
+    create_db.create_db()
     with app.app_context():
         db.drop_all()   # Drops all existing tables
         db.create_all() # Recreates tables from models
