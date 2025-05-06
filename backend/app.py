@@ -31,15 +31,11 @@ class User(db.Model):
     posted_jobs = db.relationship('Job', backref='user', lazy=True)
 
 
-class UserInterestedJob(db.Model):
-    __tablename__ = 'user_interested_jobs'
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
-    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
-
-
 class Resume(db.Model):
     __tablename__ = 'resumes'
-    resume_style = db.Column(db.String(100), primary_key=True)
+
+    resume_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    resume_style = db.Column(db.String(100))
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     contact_info = db.Column(db.Text, nullable=False)
 
@@ -52,20 +48,24 @@ class Resume(db.Model):
 class Skill(db.Model):
     __tablename__ = 'skills'
     skill_name = db.Column(db.String(100), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    resume_id = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
 
 
 class Education(db.Model):
     __tablename__ = 'education'
     education_received = db.Column(db.String(255), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    resume_id = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
 
 
 class Experience(db.Model):
     __tablename__ = 'experience'
     experience_worked = db.Column(db.String(255), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    resume_id = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
 
+class UserInterestedJob(db.Model):
+    __tablename__ = 'user_interested_jobs'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
 
 class Company(db.Model):
     __tablename__ = 'companies'
@@ -79,7 +79,7 @@ class Company(db.Model):
 
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    resume_id = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), primary_key=True)
     submission_date = db.Column(db.Date, nullable=False)
 
@@ -152,6 +152,8 @@ def create_user():
     
     if None in (email, password, username, fname, lname):
         return {'message': 'Email, password, username, and first/last name are required'}, 400
+    if '@' not in email or '.' not in email:
+        return {'message': 'Invalid email format'}, 400
 
     if User.query.filter_by(email=email).first():
         return {'message': 'Email already exists'}, 409
@@ -243,9 +245,9 @@ def create_resume():
 def add_skill():
     data = request.get_json()
     skill_name = data.get('skill_name')
-    resume_style = data.get('resume_style')
+    resume_id = data.get('resume_id')
 
-    skill = Skill(skill_name=skill_name, resume_style=resume_style)
+    skill = Skill(skill_name=skill_name, resume_id=resume_id)
     db.session.add(skill)
     db.session.commit()
     return {'message': 'Skill added'}, 201
@@ -255,9 +257,9 @@ def add_skill():
 def add_education():
     data = request.get_json()
     education_received = data.get('education_received')
-    resume_style = data.get('resume_style')
+    resume_id = data.get('resume_id')
 
-    edu = Education(education_received=education_received, resume_style=resume_style)
+    edu = Education(education_received=education_received, resume_id=resume_id)
     db.session.add(edu)
     db.session.commit()
     return {'message': 'Education added'}, 201
@@ -267,9 +269,9 @@ def add_education():
 def add_experience():
     data = request.get_json()
     experience_worked = data.get('experience_worked')
-    resume_style = data.get('resume_style')
+    resume_id = data.get('resume_id')
 
-    exp = Experience(experience_worked=experience_worked, resume_style=resume_style)
+    exp = Experience(experience_worked=experience_worked, resume_id=resume_id)
     db.session.add(exp)
     db.session.commit()
     return {'message': 'Experience added'}, 201
@@ -291,6 +293,22 @@ def create_company():
     db.session.commit()
 
     return {'message': 'Company created', 'company_id': company.company_id}, 201
+
+@app.route('/users/<int:user_id>/interested_companies', methods=['GET'])
+def get_user_interested_companies(user_id):
+    #Get all job IDs the user is interested in
+    job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    #Join jobs with companies based on those job IDs
+    companies = db.session.query(Company).join(Job).filter(Job.job_id.in_(job_ids)).distinct().all()
+
+    #Return company info
+    return jsonify([{
+        'company_id': c.company_id,
+        'name': c.name,
+        'location': c.location
+    } for c in companies])
+
 
 
 @app.route('/create_job', methods=['POST'])
@@ -497,41 +515,36 @@ def remove_saved_job():
 
 @app.route('/search_jobs', methods=['GET'])
 def search_jobs():
-    # Get query parameters from the request
     keyword = request.args.get('keyword', default='', type=str)
     location = request.args.get('location', default='', type=str)
     min_salary = request.args.get('min_salary', default=0, type=float)
     max_salary = request.args.get('max_salary', default=1000000, type=float)
     job_type = request.args.get('job_type', default='', type=str)
 
-    # Build the query dynamically based on the filters provided
-    query = Job.query
+    # Start query with a join to Company so we can filter by location
+    query = db.session.query(Job).join(Company)
 
     if keyword:
-        query = query.filter(Job.requirements.ilike(f'%{keyword}%'))  # Filter jobs based on keyword in requirements
+        query = query.filter(Job.requirements.ilike(f'%{keyword}%'))
 
     if location:
-        query = query.filter(Company.location.ilike(f'%{location}%'))  # Filter jobs based on location
+        query = query.filter(Company.location.ilike(f'%{location}%'))
 
-    if min_salary:
-        query = query.filter(Job.salary >= min_salary)  # Filter jobs with a minimum salary
-
-    if max_salary:
-        query = query.filter(Job.salary <= max_salary)  # Filter jobs with a maximum salary
+    query = query.filter(Job.salary >= min_salary, Job.salary <= max_salary)
 
     if job_type:
-        if job_type.lower() == 'economy':
-            query = query.join(Economy).filter(Economy.job_id == Job.job_id) 
-        elif job_type.lower() == 'engineering':
-            query = query.join(Engineering).filter(Engineering.job_id == Job.job_id) 
-        elif job_type.lower() == 'medical':
-            query = query.join(Medical).filter(Medical.job_id == Job.job_id) 
-        elif job_type.lower() == 'management':
-            query = query.join(Management).filter(Management.job_id == Job.job_id)
+        job_type = job_type.lower()
+        if job_type == 'economy':
+            query = query.join(Economy, Economy.job_id == Job.job_id)
+        elif job_type == 'engineering':
+            query = query.join(Engineering, Engineering.job_id == Job.job_id)
+        elif job_type == 'medical':
+            query = query.join(Medical, Medical.job_id == Job.job_id)
+        elif job_type == 'management':
+            query = query.join(Management, Management.job_id == Job.job_id)
 
     jobs = query.all()
 
-    # Return the filtered list of jobs
     return jsonify([{
         'job_id': job.job_id,
         'availability': job.availability,
@@ -544,11 +557,12 @@ def search_jobs():
 
 
 
+
 # ---------- APP ENTRY ----------
 
 if __name__ == '__main__':
     create_db.create_db()
     with app.app_context():
-        db.drop_all()   # Drops all existing tables
-        db.create_all() # Recreates tables from models
+        db.drop_all()   # Drops all existing tables, should we do this every run?
+        db.create_all() # Recreates tables from models, same
     app.run(host='0.0.0.0', port=80)
