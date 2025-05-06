@@ -4,6 +4,11 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import password
 import create_db
+from datetime import datetime
+from werkzeug.utils import secure_filename
+import os
+
+
 app = Flask(__name__, static_folder='static')
 CORS(app, origins=["http://localhost:3000"]) # allow outside source (frontend)
 
@@ -11,7 +16,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://root:{password.PASSWOR
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB max
 db = SQLAlchemy(app)
 
 # ---------- MODELS ----------
@@ -39,16 +48,24 @@ class Resume(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     contact_info = db.Column(db.Text, nullable=False)
 
-    skills = db.relationship('Skill', backref='resume', lazy=True)
-    educations = db.relationship('Education', backref='resume', lazy=True)
-    experiences = db.relationship('Experience', backref='resume', lazy=True)
-    submissions = db.relationship('HandedTo', backref='resume', lazy=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    upload_date = db.Column(db.DateTime, nullable=False)
+
+    skills = db.relationship('Skill', backref='resume', lazy=True, cascade="all, delete-orphan")
+    educations = db.relationship('Education', backref='resume', lazy=True, cascade="all, delete-orphan")
+    experiences = db.relationship('Experience', backref='resume', lazy=True, cascade="all, delete-orphan")
+    submissions = db.relationship('HandedTo', backref='resume', lazy=True, cascade="all, delete-orphan")
 
 
 class Skill(db.Model):
     __tablename__ = 'skills'
-    skill_name = db.Column(db.String(100), primary_key=True)
-    resume_id = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+
+    skill_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    skill_name = db.Column(db.String(100), nullable=False)
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.resume_id'), nullable=False)
+
 
 
 class Education(db.Model):
@@ -224,22 +241,101 @@ def delete_user(user_id):
 
 @app.route('/create_resume', methods=['POST'])
 def create_resume():
-    data = request.get_json()
-    resume_style = data.get('resume_style')
-    user_id = data.get('user_id')
-    contact_info = data.get('contact_info')
+    user_id = request.form.get('user_id')
+    resume_style = request.form.get('resume_style')
+    contact_info = request.form.get('contact_info')
+    pdf = request.files.get('pdf')
 
-    if not all([resume_style, user_id, contact_info]):
-        return {'message': 'All fields are required'}, 400
+    if not all([user_id, resume_style, contact_info, pdf]):
+        return {'message': 'Missing required fields or file'}, 400
 
-    if Resume.query.filter_by(user_id=user_id).first():
-        return {'message': 'Resume already exists for this user'}, 409
+    if not pdf.filename.lower().endswith('.pdf'):
+        return {'message': 'Only PDF files are allowed'}, 400
 
-    resume = Resume(resume_style=resume_style, user_id=user_id, contact_info=contact_info)
+    filename = secure_filename(pdf.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    pdf.save(file_path)
+    file_size = os.path.getsize(file_path)
+
+    resume = Resume(
+        resume_style=resume_style,
+        user_id=user_id,
+        contact_info=contact_info,
+        file_name=filename,
+        upload_date=datetime.utcnow(),
+        file_size=file_size,
+        file_path=file_path
+    )
+
     db.session.add(resume)
     db.session.commit()
-    return {'message': 'Resume created'}, 201
 
+    return {
+        'message': 'Resume uploaded successfully',
+        'resume': {
+            'resume_id': resume.resume_id,
+            'file_name': resume.file_name,
+            'upload_date': resume.upload_date.isoformat(),
+            'file_size': resume.file_size
+        }
+    }, 201
+
+@app.route('/edit_resume/<int:resume_id>', methods=['PUT'])
+def edit_resume(resume_id):
+    resume = Resume.query.get(resume_id)
+    if not resume:
+        return {'message': 'Resume not found'}, 404
+
+    resume_style = request.form.get('resume_style')
+    contact_info = request.form.get('contact_info')
+    pdf = request.files.get('pdf')
+
+    if resume_style:
+        resume.resume_style = resume_style
+    if contact_info:
+        resume.contact_info = contact_info
+
+    if pdf:
+        if not pdf.filename.lower().endswith('.pdf'):
+            return {'message': 'Only PDF files allowed'}, 400
+
+        filename = secure_filename(pdf.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        pdf.save(file_path)
+        file_size = os.path.getsize(file_path)
+
+        if resume.file_path and os.path.exists(resume.file_path):
+            os.remove(resume.file_path)
+
+        resume.file_name = filename
+        resume.upload_date = datetime.utcnow()
+        resume.file_size = file_size
+        resume.file_path = file_path
+
+    db.session.commit()
+    return {
+        'message': 'Resume updated successfully',
+        'resume': {
+            'resume_id': resume.resume_id,
+            'file_name': resume.file_name,
+            'upload_date': resume.upload_date.isoformat(),
+            'file_size': resume.file_size
+        }
+    }
+
+@app.route('/delete_resume/<int:resume_id>', methods=['DELETE'])
+def delete_resume(resume_id):
+    resume = Resume.query.get(resume_id)
+    if not resume:
+        return {'message': 'Resume not found'}, 404
+
+    if resume.file_path and os.path.exists(resume.file_path):
+        os.remove(resume.file_path)
+
+    db.session.delete(resume)
+    db.session.commit()
+
+    return {'message': 'Resume deleted successfully'}
 
 @app.route('/add_skill', methods=['POST'])
 def add_skill():
@@ -247,11 +343,16 @@ def add_skill():
     skill_name = data.get('skill_name')
     resume_id = data.get('resume_id')
 
+    if not skill_name or not resume_id:
+        return {'message': 'Skill name and resume ID are required'}, 400
+
+    if not Resume.query.get(resume_id):
+        return {'message': 'Resume not found'}, 404
+
     skill = Skill(skill_name=skill_name, resume_id=resume_id)
     db.session.add(skill)
     db.session.commit()
-    return {'message': 'Skill added'}, 201
-
+    return {'message': 'Skill added', 'skill_id': skill.skill_id}, 201
 
 @app.route('/add_education', methods=['POST'])
 def add_education():
@@ -293,6 +394,27 @@ def create_company():
     db.session.commit()
 
     return {'message': 'Company created', 'company_id': company.company_id}, 201
+
+@app.route('/companies/<int:company_id>', methods=['PUT'])
+def update_company(company_id):
+    data = request.get_json()
+    company = Company.query.get(company_id)
+    if not company:
+        return {'message': 'Company not found'}, 404
+    company.name = data.get('name', company.name)
+    company.location = data.get('location', company.location)
+    db.session.commit()
+    return {'message': 'Company updated'}, 200
+
+@app.route('/companies/<int:company_id>', methods=['DELETE'])
+def delete_company(company_id):
+    company = Company.query.get(company_id)
+    if not company:
+        return {'message': 'Company not found'}, 404
+    db.session.delete(company)
+    db.session.commit()
+    return {'message': 'Company deleted'}, 200
+
 
 @app.route('/users/<int:user_id>/interested_companies', methods=['GET'])
 def get_user_interested_companies(user_id):
@@ -451,14 +573,16 @@ def get_all_jobs():
     } for j in jobs])
 
 
-@app.route('/companies', methods=['GET'])
-def get_all_companies():
-    companies = Company.query.all()
+@app.route('/users/<int:user_id>/companies', methods=['GET'])
+def get_user_companies(user_id):
+    companies = db.session.query(Company).join(Job).filter(Job.user_id == user_id).distinct().all()
     return jsonify([{
         'company_id': c.company_id,
         'name': c.name,
         'location': c.location
     } for c in companies])
+
+
 
 
 @app.route('/users/<int:user_id>/interested_jobs', methods=['GET'])
@@ -554,6 +678,78 @@ def search_jobs():
         'location': job.company.location,
         'job_type': job_type.capitalize() if job_type else 'Unknown'
     } for job in jobs])
+
+@app.route('/company_card/<int:company_id>', methods=['GET'])
+def get_company_card(company_id):
+    user_id = request.args.get('user_id', type=int)
+
+    company = Company.query.get(company_id)
+    if not company:
+        return {'message': 'Company not found'}, 404
+
+    company_cards = []
+
+    for job in company.jobs:
+        # Check if user has saved the job
+        saved = False
+        submitted = False
+        if user_id:
+            saved = UserInterestedJob.query.filter_by(user_id=user_id, job_id=job.job_id).first() is not None
+            
+            # Check if user's resume was handed to this company
+            resume = Resume.query.filter_by(user_id=user_id).first()
+            if resume:
+                submitted = HandedTo.query.filter_by(resume_id=resume.resume_id, company_id=company_id).first() is not None
+
+        # Derive progress dynamically
+        if submitted:
+            progress = "Resume Submitted"
+        elif saved:
+            progress = "Job Saved"
+        else:
+            progress = "Not Started"
+
+        # Get skills submitted to company
+        skills = db.session.query(Skill.skill_name).join(Resume, Resume.resume_style == Skill.resume_id)\
+            .join(HandedTo, HandedTo.resume_id == Resume.resume_style)\
+            .filter(HandedTo.company_id == company_id).distinct().all()
+        
+        skill_names = [s.skill_name for s in skills]
+
+        company_cards.append({
+            'id': job.job_id,
+            'jobName': job.requirements,
+            'salary': float(job.salary),
+            'progress': progress,
+            'title': company.name,
+            'skills': skill_names,
+            'requirements': job.requirements
+        })
+
+    return jsonify(company_cards), 200
+
+@app.route('/users/<int:user_id>/companies', methods=['GET'])
+def get_user_companies(user_id):
+    companies = db.session.query(Company).join(Job).filter(Job.user_id == user_id).distinct().all()
+    return jsonify([{
+        'company_id': c.company_id,
+        'name': c.name,
+        'location': c.location
+    } for c in companies])
+
+@app.route('/users/<int:user_id>/jobs', methods=['GET'])
+def get_user_jobs(user_id):
+    # Get all jobs where the user is associated with the job
+    jobs = Job.query.filter_by(user_id=user_id).all()
+    
+    return jsonify([{
+        'job_id': j.job_id,
+        'availability': j.availability,
+        'salary': float(j.salary),
+        'company_id': j.company_id,
+        'requirements': j.requirements
+    } for j in jobs])
+
 
 
 
