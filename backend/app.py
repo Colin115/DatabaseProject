@@ -57,7 +57,6 @@ class Company(db.Model):
     jobs = db.relationship('Job', backref='company', lazy=True)
     submissions = db.relationship('HandedTo', backref='company', lazy=True)
 
-
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
     resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'), primary_key=True)
@@ -68,17 +67,19 @@ class HandedTo(db.Model):
 class Job(db.Model):
     __tablename__ = 'jobs'
     job_id = db.Column(db.Integer, primary_key=True)
-    availability = db.Column(db.Boolean, nullable=False)
-    salary = db.Column(db.Numeric(10, 2), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), nullable=False)
-    requirements = db.Column(db.Text, nullable=False)
+    salary = db.Column(db.Numeric(10, 2), nullable=True)
+    requirements = db.Column(db.Text, nullable=True)
+    skills = db.Column(db.Text, nullable=True)
+    title = db.Column(db.Text, nullable=True)
+    progress = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), nullable=True)
 
     economy = db.relationship('Economy', backref='job', uselist=False)
     management = db.relationship('Management', backref='job', uselist=False)
     engineering = db.relationship('Engineering', backref='job', uselist=False)
     medical = db.relationship('Medical', backref='job', uselist=False)
-
 
 class Economy(db.Model):
     __tablename__ = 'economy'
@@ -326,14 +327,24 @@ def add_econ_job():
 
 # ---------- QUERIES ----------
 
-@app.route('/users', methods=['GET'])
-def get_all_users():
-    users = User.query.all()
-    return jsonify([{
-        'user_id': user.user_id,
-        'email': user.email,
-        'looking_for_job': user.looking_for_job
-    } for user in users])
+@app.route('/get_user/<string:username>', methods=['GET'])
+def get_all_users(username: str):
+    try:
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user_data = {
+            "fname" : user.fname,
+            "lname" : user.lname,
+            "email": user.email
+        }
+        
+        return jsonify(user_data), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/resumes/<string:username>', methods=['GET'])
