@@ -9,13 +9,13 @@ const Companies = ({ resumes }) => {
 
   const handleAddJob = () => {
     const newJob = {
-      id: Date.now(),
-      jobName: `Job ${companies.length + 1}`,
-      salary: "$120,000.00",
-      progress: "0%",
-      title: "Frontend Developer",
-      skills: "React, TypeScript, CSS",
-      requirements: "3+ years experience",
+      id: Date.now(), 
+      jobName: `Click Me to Edit`,
+      salary: "",
+      progress: "",
+      title: "",
+      skills: "",
+      requirements: "",
     };
     setCompanies((prev) => [...prev, newJob]);
     setShowAddJob(true);
