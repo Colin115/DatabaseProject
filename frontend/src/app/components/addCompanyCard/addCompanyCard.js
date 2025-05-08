@@ -8,7 +8,7 @@ const AddCompanyCard = ({ companyData, onUpdate }) => {
   const [editData, setEditData] = useState(companyData)
 
   const handleClick = () => {
-    setCompanyData(companyData);
+    setEditData(companyData);
     setPopupOpen(true);
   };
 
@@ -40,3 +40,4 @@ const AddCompanyCard = ({ companyData, onUpdate }) => {
 };
 
 export default AddCompanyCard;
+
