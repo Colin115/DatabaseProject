@@ -11,7 +11,8 @@ export default function CompanyCard({
   title,
   skills,
   requirements,
-  onUpdate
+  onUpdate,
+  onRemove, 
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const [editData, setEditData] = useState({
@@ -31,7 +32,7 @@ export default function CompanyCard({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdate(editData); // pass data up
+    onUpdate(editData); 
     setPopupOpen(false);
   };
 
@@ -46,6 +47,15 @@ export default function CompanyCard({
           <p><strong>Skills:</strong> {skills}</p>
           <p><strong>Requirements:</strong> {requirements}</p>
         </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); 
+            onRemove(); 
+          }}
+          className={styles.removeButton}
+        >
+          Remove
+        </button>
       </div>
 
       <Popup
