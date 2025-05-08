@@ -125,16 +125,16 @@ export default function CompanyCard({
               ))}
             </select>
           </label>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className={styles.removeButton}
+          >
+            Remove
+          </button>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          className={styles.removeButton}
-        >
-          Remove
-        </button>
       </div>
 
       <Popup

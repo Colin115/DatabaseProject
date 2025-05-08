@@ -12,6 +12,8 @@
     width: 100%;
     margin: 2.2rem auto;
     margin-bottom: 25px;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .deleteBtn {

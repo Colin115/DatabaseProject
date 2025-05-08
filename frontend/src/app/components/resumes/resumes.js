@@ -67,6 +67,10 @@ const Resumes = ({ username }) => {
     }
   };
 
+  const handleUpdate = (editData) => {
+    fetchResumes();
+  }
+
   const handleRemoveResume = async (indexToRemove, resumeId) => {
     try {
       const response = await fetch(
@@ -111,6 +115,7 @@ const Resumes = ({ username }) => {
             fileUrl={`http://127.0.0.1:80/pdfs/${resume.pdf_file}`} 
             uploadDate={resume.uploadDate || "N/A"}
             fileSize={resume.fileSize || "N/A"}
+            onUpdate={handleUpdate}
             onRemove={() => handleRemoveResume(index, resume.id)}
             resumeId={resume.id}
           />
