@@ -41,8 +41,6 @@ const ResumeCard = ({ fileName, uploadDate, fileSize, onRemove, onUpdate, resume
     <>
       <div className={styles.card} onClick={() => setPopupOpen(true)}>
         <p><strong>File Name:</strong> {fileName}</p>
-        <p><strong>Upload Date:</strong> {uploadDate}</p>
-        <p><strong>File Size:</strong> {fileSize}</p>
         <button
           onClick={(e) => {
             e.stopPropagation();
