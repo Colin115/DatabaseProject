@@ -108,7 +108,7 @@ const Resumes = ({ username }) => {
           <ResumeCard
             key={index}
             fileName={resume.pdf_file || "Unknown File"}
-            fileUrl={`http://127.0.0.1:80/uploads/${resume.pdf_file}`} 
+            fileUrl={`http://127.0.0.1:80/pdfs/${resume.pdf_file}`} 
             uploadDate={resume.uploadDate || "N/A"}
             fileSize={resume.fileSize || "N/A"}
             onRemove={() => handleRemoveResume(index, resume.id)}

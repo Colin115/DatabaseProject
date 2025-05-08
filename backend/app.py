@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload
 
@@ -124,6 +124,15 @@ def test_db():
     except Exception as e:
         return {'message': 'Database connection failed', 'error': str(e)}, 500
 
+@app.route("/pdfs/<string:filename>")
+def serve_pdf(filename):
+    filename = filename.split("/")[-1]
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    print(file_path)
+    if os.path.exists(file_path):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    else:
+        return "File not found", 404
 
 @app.route('/create_user', methods=['POST'])
 def create_user():
