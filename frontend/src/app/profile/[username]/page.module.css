@@ -31,6 +31,13 @@
     height: 70vh;
 }
 
+@media (max-width: 768px) {
+    .profileContent {
+        flex-direction: column;
+        height: auto;
+    }
+}
+
 .column {
     flex: 1;
     overflow-y: auto;

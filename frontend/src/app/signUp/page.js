@@ -107,7 +107,7 @@ export default function SignUp() {
             </button>
           </form>
           <p className={styles.signup}>
-            Already have an account? <a href="/">Log in</a>
+            Already have an account? <a href="logIn">Log in</a>
           </p>
         </div>
       </main>

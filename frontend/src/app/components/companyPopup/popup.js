@@ -18,8 +18,8 @@ const Popup = ({
       >
         <form onSubmit={onSubmit}>
             <input
-            name="jobName"
-            placeholder="Job Name"
+            name="title"
+            placeholder="Job Title"
             value={companyData.jobName}
             onChange={onChange}
           />
@@ -33,12 +33,6 @@ const Popup = ({
             name="progress"
             placeholder="Progress"
             value={companyData.progress}
-            onChange={onChange}
-          />
-          <input
-            name="title"
-            placeholder="Job Title"
-            value={companyData.title}
             onChange={onChange}
           />
           <input

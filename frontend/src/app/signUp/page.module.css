@@ -47,8 +47,17 @@
 
 .formItem {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    width: 80%;
+    width: 100%;
+}
+
+.formItem label{
+    width: 100% !important;
+}
+
+.formItem input{
+    width: 100% !important; 
 }
 
 .formItem label {
