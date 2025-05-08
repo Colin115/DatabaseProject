@@ -128,9 +128,11 @@ def test_db():
 #------- View Pdf -------#
 @app.route("/pdfs/<string:filename>")
 def serve_pdf(filename):
+    # find local file name
     filename = filename.split("/")[-1]
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    print(file_path)
+    
+    # return path if it exists
     if os.path.exists(file_path):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
     else:
@@ -139,6 +141,7 @@ def serve_pdf(filename):
 #------- Create User -------#
 @app.route('/create_user', methods=['POST'])
 def create_user():
+    # Save request data
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -146,14 +149,19 @@ def create_user():
     lname = data.get('lastName')
     fname = data.get('firstName')
 
-    print(data, email, password)
-    
+    # Verify required information is present    
     if None in (email, password, username, fname, lname):
         return {'message': 'Email, password, username, and first/last name are required'}, 400
 
+    # Ensure the email is unique
     if User.query.filter_by(email=email).first():
         return {'message': 'Email already exists'}, 409
 
+    # Ensure the username is unique
+    if User.query.filter_by(username=username).first():
+        return {'message': 'Username already exists'}, 409
+    
+    # Save new user information
     hashed_password = password # todo implement hash
     user = User(email=email, password=hashed_password, username=username, fname=fname, lname=lname)
     db.session.add(user)
@@ -163,62 +171,40 @@ def create_user():
 #------- Login -------#
 @app.route('/login', methods=['POST'])
 def login():
+    # Save request data
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
+    # Find user data in data base
     user = User.query.filter_by(username=username).first()
-    print(username, password)
-    print(user.password)
+    
+    # Validate user login information
     if not user or user.password != password:
         return {'message': 'Invalid email or password'}, 401
 
     return {'message': 'Login successful', 'user_id': user.user_id}, 200
 
-#------- Edit User Data -------#
-@app.route('/edit_user/<int:user_id>', methods=['PUT'])
-def edit_user(user_id):
-    data = request.get_json()
-    user = User.query.get(user_id)
-    if not user:
-        return {'message': 'User not found'}, 404
-
-    user.email = data.get('email', user.email)
-    if 'password' in data:
-        user.password = generate_password_hash(data['password'])
-    user.looking_for_job = data.get('looking_for_job', user.looking_for_job)
-    db.session.commit()
-    return {'message': 'User updated'}, 200
-
-#------- Delete User Profile -------#
-@app.route('/delete_user/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
-    user = User.query.get(user_id)
-    if not user:
-        return {'message': 'User not found'}, 404
-
-    db.session.delete(user)
-    db.session.commit()
-    return {'message': 'User deleted'}, 200
-
 #------- Add Resume -------#
 @app.route('/add_resumes/<string:username>', methods=['POST'])
 def add_resume(username: str):
     try:
+        # Retrieve User Information
         user = User.query.filter_by(username=username).first()
 
+        # Ensure user found
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        # Ensure file was sent
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 408
-
+        
         file = request.files['file']
-
         if file.filename == '':
-            
             return jsonify({'error': 'No selected file'}), 409
 
+        # Ensure file is pdf
         if file and file.filename.endswith('.pdf'):
             filename = file.filename
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -241,10 +227,12 @@ def add_resume(username: str):
 @app.route('/resumes/<string:username>/<int:resume_id>', methods=['DELETE'])
 def delete_resume(username: str, resume_id: int):
     try:
+        # Retrieve user data
         user = User.query.filter_by(username=username).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        # Retrieve resume
         resume = Resume.query.filter_by(id=resume_id, user_id=user.user_id).first()
         if not resume:
             return jsonify({'error': 'Resume not found'}), 404
@@ -266,28 +254,30 @@ def delete_resume(username: str, resume_id: int):
 @app.route('/resumes/update/<int:resume_id>', methods=['PUT'])
 def update_resume_name(resume_id):
     try:
+        # Retrieve new resume filename
         data = request.json
         new_file_name = data.get("fileName")
 
+        # Ensure the file already exists
         if not new_file_name:
             return jsonify({'error': 'New file name is required'}), 400
         
+        # Parse new file name to go in upload folder
         new_file_name = new_file_name.split("/")[-1]
         new_file_name = new_file_name.split("\\")[-1]
         new_file_name = os.path.join( app.config['UPLOAD_FOLDER'], new_file_name )
         if (new_file_name[-4:] != ".pdf"):
             new_file_name += ".pdf"
 
-        print(resume_id)
+        # Retrieve the resume
         resume = Resume.query.get(resume_id)
         if not resume:
             return jsonify({'error': 'Resume not found'}), 404
         
-        print(resume.pdf_file)
+        # Rename the file
         if not os.path.exists(resume.pdf_file):
             return jsonify({'error': 'Resume not found'}), 404
         os.rename(resume.pdf_file, new_file_name)
-        
         
         # Update the file name
         resume.pdf_file = new_file_name
@@ -298,29 +288,18 @@ def update_resume_name(resume_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-#------- Create Company -------#
-@app.route('/create_company', methods=['POST'])
-def create_company():
-    data = request.get_json()
-    name = data.get('name')
-    location = data.get('location')
-
-    if Company.query.filter_by(name=name).first():
-        return {'message': 'Company already exists'}, 409
-
-    company = Company(name=name, location=location)
-    db.session.add(company)
-    db.session.commit()
-    return {'message': 'Company created', 'company_id': company.company_id}, 201
-
 #------- Add Job -------#
 @app.route('/jobs/<string:username>', methods=['POST'])
 def add_job(username):
+    # Retrieve job information
     data = request.get_json()
+    
+    # Retrieve user information and ensure user exists
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
 
+    # Create new job entry and add to database
     new_job = Job(
         salary=data.get('salary', 0),
         requirements=data.get('requirements', ""),
@@ -338,11 +317,15 @@ def add_job(username):
 #------- Edit Job Data -------#
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def edit_job(job_id):
+    # Retrieve updated job data
     data = request.get_json()
+    
+    # Retrieve edited job and ensure it exits
     job = Job.query.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
 
+    # Update information
     job.salary = data.get('salary', job.salary)
     job.requirements = data.get('requirements', job.requirements)
     job.skills = data.get('skills', job.skills)
@@ -527,8 +510,12 @@ def get_associated_resumes(job_id):
 
 
 
-# ---------- APP ENTRY ----------
 
+'''
+----------------------
+Application Startup
+----------------------
+'''
 if __name__ == '__main__':
     create_db.create_db()
     with app.app_context():
