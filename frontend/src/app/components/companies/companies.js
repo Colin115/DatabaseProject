@@ -7,23 +7,19 @@ const Companies = ({ username }) => {
   const [companies, setCompanies] = useState([]);
   const [showAddJob, setShowAddJob] = useState(false);
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:80/jobs/${username}`);
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
-        } else {
-          console.error("Failed to fetch jobs");
-        }
-      } catch (error) {
-        console.error("Error fetching jobs:", error);
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:80/jobs/${username}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data);
+      } else {
+        console.error("Failed to fetch jobs");
       }
-    };
-
-    if (username) fetchJobs();
-  }, [username]);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
+  };
 
   const handleAddJob = async () => {
     const newJob = {
@@ -47,6 +43,7 @@ const Companies = ({ username }) => {
         const createdJob = await response.json();
         setCompanies((prev) => [...prev, createdJob]);
         setShowAddJob(true);
+        fetchJobs();
       }
     } catch (error) {
       console.error("Error adding job:", error);
@@ -86,7 +83,6 @@ const Companies = ({ username }) => {
       )
     );
   };
-  
 
   const handleRemove = async (idToRemove) => {
     try {
@@ -104,6 +100,10 @@ const Companies = ({ username }) => {
       console.error("Error deleting job:", error);
     }
   };
+
+  useEffect(() => {
+    if (username) fetchJobs();
+  }, [username]);
 
   return (
     <div className={styles.container}>

@@ -13,7 +13,7 @@ We built an application called Nest, an application dedicated to helping you wit
 1. Set dir as backend
 1. Setup Virtual Env ``` python -m venv venv```
 1. Activate env ```.\venv\Scripts\activate```
-1. Download requirements ```pip install requirements.txt```
+1. Download requirements ```pip install -r requirements.txt```
 ### Run
 1. ensure venv is active
 1. ```python app.py```
