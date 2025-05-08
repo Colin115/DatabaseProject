@@ -1,5 +1,4 @@
 .main {
-
     padding: 20px;
     margin: 0 auto;
     border: 1px solid #6c757d;
@@ -9,40 +8,51 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
+}
 
-  .header {
-    
+.header {
+    margin-top: 15px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-  }
+}
 
-  .invisible {
+.invisible {
     visibility: hidden;
-  }
+}
 
 
-  .titleHeader {
+.titleHeader {
     font-size: 15px;
     margin-bottom: 0px;
     color: rgb(136, 136, 136);
-  }
-  
-  .nav {
+}
+
+.nav {
     display: flex;
     gap: 1rem;
-  }
-  
-  .nav a {
+}
+
+.nav a {
     text-decoration: none;
     color: #007bff;
     font-weight: bold;
-  }
-  
-  .nav a:hover {
+}
+
+.nav a:hover {
     text-decoration: underline;
-  }
-  
+}
+
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .invisible {
+        display: none;
+    }
+}

@@ -7,8 +7,8 @@ const Header = () => {
     <div className={styles.header}>
       <nav className={styles.invisible}>
         <Link href="/">Home</Link>
-        <Link href="/login">Login</Link>
-        <Link href="/signup">Sign Up</Link>
+        <Link href="/logIn">Login</Link>
+        <Link href="/signUp">Sign Up</Link>
       </nav>
       <div className={styles.main}>
         <h2 className={styles.titleHeader}>
@@ -17,8 +17,8 @@ const Header = () => {
       </div>
       <nav className={styles.nav}>
         <Link href="/">Home</Link>
-        <Link href="/login">Login</Link>
-        <Link href="/signup">Sign Up</Link>
+        <Link href="/logIn">Login</Link>
+        <Link href="/signUp">Sign Up</Link>
       </nav>
     </div>
   );
