@@ -23,8 +23,7 @@ const Resumes = ({ username }) => {
 
       if (response.ok) {
         console.log("Resume uploaded successfully");
-        // Immediately refetch the list of resumes to get the full data
-        fetchResumes();
+        fetchResumes(); 
       } else {
         console.error("Failed to upload resume:", response.statusText);
       }
@@ -33,7 +32,6 @@ const Resumes = ({ username }) => {
     }
   };
 
-  // Ensure fetchResumes is defined outside of useEffect so it can be reused
   const fetchResumes = async () => {
     try {
       const response = await fetch(`http://127.0.0.1:80/resumes/${username}`);
@@ -48,7 +46,6 @@ const Resumes = ({ username }) => {
     }
   };
 
-  // UseEffect only for initial load
   useEffect(() => {
     if (username) {
       fetchResumes();
@@ -58,7 +55,7 @@ const Resumes = ({ username }) => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file && file.type === "application/pdf") {
-      uploadNewResume(file); // Directly upload the file
+      uploadNewResume(file);
     } else {
       alert("Please upload a valid PDF file.");
     }
@@ -110,11 +107,8 @@ const Resumes = ({ username }) => {
         {uploadedResumes.map((resume, index) => (
           <ResumeCard
             key={index}
-            fileName={
-              resume.pdf_file
-                ? resume.pdf_file
-                : "Unknown File"
-            }
+            fileName={resume.pdf_file || "Unknown File"}
+            fileUrl={`http://127.0.0.1:80/uploads/${resume.pdf_file}`} 
             uploadDate={resume.uploadDate || "N/A"}
             fileSize={resume.fileSize || "N/A"}
             onRemove={() => handleRemoveResume(index, resume.id)}
