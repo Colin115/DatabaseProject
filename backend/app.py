@@ -404,14 +404,16 @@ Query API Endpoints
 ----------------------
 '''
 
-#------- Get Username  -------#
+#------- Get Username Data  -------#
 @app.route('/get_user/<string:username>', methods=['GET'])
 def get_all_users(username: str):
     try:
+        # Retrieve user from db and ensure they exist
         user = User.query.filter_by(username=username).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        # Return user data
         user_data = {
             "fname" : user.fname,
             "lname" : user.lname,
@@ -428,14 +430,18 @@ def get_all_users(username: str):
 @app.route('/resumes/<string:username>', methods=['GET'])
 def get_all_resumes(username: str):
     try:
+        # Retrieve user and ensure they exist
         user = User.query.filter_by(username=username).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        # Retrieve all resumes for the user
         resumes = Resume.query.filter_by(user_id=user.user_id).all()
-
+        
+        # Remove "uploads" from each filename
         for resume in resumes:
             resume.pdf_file = resume.pdf_file.split("/")[-1]
+        
         # Convert the resume objects to a list of dictionaries for JSON response
         resume_list = [
             {
