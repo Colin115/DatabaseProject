@@ -52,8 +52,10 @@ export default function CompanyCard({
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleResumeChange = async (resumeId) => {
+    setEditData((prev) => ({ ...prev, selectedResume: resumeId }));
+
     try {
       const response = await fetch(
         `http://127.0.0.1:80/jobs/${id}/associate_resume`,
@@ -70,7 +72,6 @@ export default function CompanyCard({
       }
 
       // Update local state
-      setEditData((prev) => ({ ...prev, selectedResume: resumeId }));
 
       // Notify parent to directly update resume in the list
       onUpdateResume(id, resumeId);
