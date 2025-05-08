@@ -113,6 +113,7 @@ const Companies = ({ username }) => {
             key={company.id}
             username={username}
             {...company}
+            selectedCompany={selectedCompany}
             onUpdate={handleUpdate}
             onUpdateResume={handleUpdateResume}
             onRemove={() => handleRemove(company.id)}

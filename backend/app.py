@@ -180,6 +180,34 @@ def login():
 
     return {'message': 'Login successful', 'user_id': user.user_id}, 200
 
+@app.route('/jobs/<int:job_id>', methods=['PUT'])
+def edit_job(job_id):
+    data = request.get_json()
+    job = Job.query.get(job_id)
+    if not job:
+        return {'message': 'Job not found'}, 404
+
+    # Update job details
+    job.availability = data.get('availability', job.availability)
+    job.salary = data.get('salary', job.salary)
+    job.company_id = data.get('company_id', job.company_id)  # Update company association
+    job.requirements = data.get('requirements', job.requirements)
+    job.skills = data.get('skills', job.skills)
+    job.title = data.get('title', job.title)
+    job.progress = data.get('progress', job.progress)
+
+    db.session.commit()
+    return {
+        'job_id': job.job_id,
+        'availability': job.availability,
+        'salary': float(job.salary),
+        'company_id': job.company_id,
+        'requirements': job.requirements,
+        'skills': job.skills,
+        'title': job.title,
+        'progress': job.progress
+    }, 200
+
 
 @app.route('/edit_user/<int:user_id>', methods=['PUT'])
 def edit_user(user_id):

@@ -58,6 +58,16 @@
     width: 100%;
     box-sizing: border-box;
   }
+
+  .companyDropdown {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
   
   .removeButton {
     background-color: red;

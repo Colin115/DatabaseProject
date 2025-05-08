@@ -28,6 +28,7 @@ export default function CompanyCard({
     skills,
     requirements,
     selectedResume,
+    selectedCompany,
   });
 
   useEffect(() => {
@@ -46,6 +47,24 @@ export default function CompanyCard({
     };
 
     fetchUserResumes();
+  }, []);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:80/companies");
+        if (response.ok) {
+          const data = await response.json();
+          setCompanies(data);
+        } else {
+          console.error("Failed to fetch companies");
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
+    };
+
+    fetchCompanies();
   }, []);
 
   const handleChange = (e) => {
@@ -121,6 +140,28 @@ export default function CompanyCard({
               {resumes.map((resume) => (
                 <option key={resume.id} value={resume.id}>
                   {resume.pdf_file.split("/").pop()}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <strong>Company:</strong>
+            <select
+              name="selectedCompany"
+              value={editData.selectedCompany || ""}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleCompanyChange(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={styles.companyDropdown}
+            >
+              <option key="-1" value="">
+                None
+              </option>
+              {companies.map((company) => (
+                <option key={company.company_id} value={company.company_id}>
+                  {company.name}
                 </option>
               ))}
             </select>
