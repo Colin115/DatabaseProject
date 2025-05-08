@@ -63,11 +63,10 @@ export default function CompanyCard({
   return (
     <>
       <div className={styles.card} onClick={() => setPopupOpen(true)}>
-        <h2 className={styles.jobName}>{jobName}</h2>
+        <h2 className={styles.jobName}>{title}</h2>
         <div className={styles.details}>
           <p><strong>Salary:</strong> {salary}</p>
           <p><strong>Progress:</strong> {progress}</p>
-          <p><strong>Title:</strong> {title}</p>
           <p><strong>Skills:</strong> {skills}</p>
           <p><strong>Requirements:</strong> {requirements}</p>
           <label>

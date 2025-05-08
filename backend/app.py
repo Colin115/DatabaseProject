@@ -300,29 +300,72 @@ def create_company():
     return {'message': 'Company created', 'company_id': company.company_id}, 201
 
 
-@app.route('/create_job', methods=['POST'])
-def create_job():
+
+    
+
+@app.route('/jobs/<string:username>', methods=['POST'])
+def add_job(username):
     data = request.get_json()
-    job = Job(
-        job_id=data['job_id'],
-        availability=data['availability'],
-        salary=data['salary'],
-        company_id=data['company_id'],
-        requirements=data['requirements'],
-        user_id=data['user_id']
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    new_job = Job(
+        salary=data.get('salary', 0),
+        requirements=data.get('requirements', ""),
+        skills=data.get('skills', ""),
+        title=data.get('title', ""),
+        progress=data.get('progress', ""),
+        user_id=user.user_id,
+        company_id=data.get('company_id')  # Optional, can be null
     )
-    db.session.add(job)
+    db.session.add(new_job)
     db.session.commit()
-    return {'message': 'Job created'}, 201
+    
+    return jsonify({
+        "id": new_job.job_id,
+        "salary": str(new_job.salary),
+        "requirements": new_job.requirements,
+        "skills": new_job.skills,
+        "title": new_job.title,
+        "progress": new_job.progress,
+        "company_id": new_job.company_id
+    }), 201
 
-
-@app.route('/add_econ_job', methods=['POST'])
-def add_econ_job():
+@app.route('/jobs/<int:job_id>', methods=['PUT'])
+def edit_job(job_id):
     data = request.get_json()
-    eco = Economy(economy_id=data['economy_id'], job_id=data['job_id'])
-    db.session.add(eco)
+    job = Job.query.get(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    job.salary = data.get('salary', job.salary)
+    job.requirements = data.get('requirements', job.requirements)
+    job.skills = data.get('skills', job.skills)
+    job.title = data.get('title', job.title)
+    job.progress = data.get('progress', job.progress)
+    job.company_id = data.get('company_id', job.company_id)
+
     db.session.commit()
-    return {'message': 'Economy job added'}, 201
+    return jsonify({
+        "id": job.job_id,
+        "salary": str(job.salary),
+        "requirements": job.requirements,
+        "skills": job.skills,
+        "title": job.title,
+        "progress": job.progress,
+        "company_id": job.company_id
+    }), 200
+
+@app.route('/jobs/<int:job_id>', methods=['DELETE'])
+def delete_job(job_id):
+    job = Job.query.get(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    db.session.delete(job)
+    db.session.commit()
+    return jsonify({"message": "Job deleted successfully"}), 200
 
 
 # ---------- QUERIES ----------
@@ -395,19 +438,24 @@ def get_all_companies():
         'location': c.location
     } for c in companies])
 
+    
+@app.route('/jobs/<string:username>', methods=['GET'])
+def get_jobs(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-@app.route('/users/<int:user_id>/interested_jobs', methods=['GET'])
-def get_interested_jobs(user_id):
-    job_ids = [t[0] for t in db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).all()]
-    jobs = Job.query.filter(Job.job_id.in_(job_ids)).all()
-    return jsonify([{
-        'job_id': j.job_id,
-        'availability': j.availability,
-        'salary': float(j.salary),
-        'requirements': j.requirements,
-        'company_id': j.company_id,
-        'user_id': j.user_id
-    } for j in jobs])
+    jobs = Job.query.filter_by(user_id=user.user_id)
+    
+    return jsonify([ {
+        "id": job.job_id,
+        "salary": str(job.salary),
+        "requirements": job.requirements,
+        "skills": job.skills,
+        "title": job.title,
+        "progress": job.progress,
+        "company_id": job.company_id
+    } for job in jobs]), 200
 
 
 # ---------- APP ENTRY ----------
