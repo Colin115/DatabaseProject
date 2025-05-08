@@ -356,6 +356,8 @@ def get_all_resumes(username: str):
 
         resumes = Resume.query.filter_by(user_id=user.user_id).all()
 
+        for resume in resumes:
+            resume.pdf_file = resume.pdf_file.split("/")[-1]
         # Convert the resume objects to a list of dictionaries for JSON response
         resume_list = [
             {

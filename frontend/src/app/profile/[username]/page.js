@@ -7,8 +7,13 @@ import Companies from "../../components/companies/companies";
 import Resumes from "../../components/resumes/resumes";
 
 export default function Profile({ params }) {
-  const { username } = params;
-  const [userData, setUserData] = useState({"fname": "loading", "lname": "loading"});
+  const [username, setUsername] = useState("");
+  const [userData, setUserData] = useState({
+    fname: "loading",
+    lname: "loading",
+    email: "loading",
+    title: "loading",
+  });
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -20,15 +25,23 @@ export default function Profile({ params }) {
           const data = await response.json();
           setUserData(data);
         } else {
-          console.error("Failed to fetch resumes");
+          console.error("Failed to fetch user info");
         }
       } catch (error) {
-        console.error("Error fetching resumes:", error);
+        console.error("Error fetching user info:", error);
       }
     };
 
-    fetchUserInfo();
-  }, []);
+    const getUsernam = async () => {
+      const { username } = await params;
+      setUsername(username);
+    }
+
+    getUsernam();
+    if (username) {
+      fetchUserInfo();
+    }
+  }, [username]);
 
   return (
     <div className={styles.page}>
@@ -48,7 +61,7 @@ export default function Profile({ params }) {
       <div className={styles.profileContent}>
         <div className={styles.column}>
           <h3>Companies</h3>
-          <Companies />
+          <Companies username={username} />
         </div>
         <div className={styles.column}>
           <h3>Resumes</h3>

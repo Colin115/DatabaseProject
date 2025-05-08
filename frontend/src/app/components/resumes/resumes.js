@@ -112,7 +112,7 @@ const Resumes = ({ username }) => {
             key={index}
             fileName={
               resume.pdf_file
-                ? resume.pdf_file.split("/").pop()
+                ? resume.pdf_file
                 : "Unknown File"
             }
             uploadDate={resume.uploadDate || "N/A"}

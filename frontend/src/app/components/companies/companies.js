@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import CompanyCard from "../companyCard/companyCard";
 import styles from "./Companies.module.css";
 
-const Companies = ({ resumes }) => {
+const Companies = ({ username }) => {
   const [companies, setCompanies] = useState([]);
   const [showAddJob, setShowAddJob] = useState(false);
 
@@ -40,9 +40,9 @@ const Companies = ({ resumes }) => {
         <div className={styles.cardsContainer}>
           {companies.map((company) => (
             <CompanyCard
+              username={username}
               key={company.id}
               {...company}
-              resumes={resumes || []} 
               onUpdate={handleUpdate}
               onRemove={() => handleRemove(company.id)}
             />

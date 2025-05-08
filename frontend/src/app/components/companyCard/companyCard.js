@@ -1,21 +1,22 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./companyCard.module.css";
 import Popup from "../companyPopup/popup";
 
 export default function CompanyCard({
   id,
+  username,
   jobName,
   salary,
   progress,
   title,
   skills,
   requirements,
-  resumes = [], 
   onUpdate,
   onRemove,
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
+  const [resumes, setResumes] = useState([]);
   const [editData, setEditData] = useState({
     id,
     jobName,
@@ -27,6 +28,25 @@ export default function CompanyCard({
     selectedResume: "", 
   });
 
+
+  useEffect(() => {
+    const fetchUserResumes = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:80/resumes/${username}`);
+        if (response.ok) {
+          const data = await response.json();
+          setResumes(data);
+        } else {
+          console.error("Failed to fetch resumes");
+        }
+      } catch (error) {
+        console.error("Error fetching resumes:", error);
+      }
+    };
+
+    fetchUserResumes();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
@@ -37,6 +57,8 @@ export default function CompanyCard({
     onUpdate(editData); 
     setPopupOpen(false);
   };
+
+  console.log(resumes)
 
   return (
     <>
@@ -62,8 +84,8 @@ export default function CompanyCard({
             >
               <option value="">None</option>
               {resumes.map((resume) => (
-                <option key={resume.id} value={resume.fileName}>
-                  {resume.fileName}
+                <option key={resume.id} value={resume.pdf_file}>
+                  {resume.pdf_file}
                 </option>
               ))}
             </select>
