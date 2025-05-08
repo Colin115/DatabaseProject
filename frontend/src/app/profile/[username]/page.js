@@ -30,7 +30,7 @@ export default async function Profile({ params }) {
         </div>
         <div className={styles.column}>
           <h3>Resumes</h3>
-          <Resumes />
+          <Resumes username={username} />
         </div>
       </div>
     </div>

@@ -1,14 +1,16 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import password
 import create_db
 app = Flask(__name__, static_folder='static')
 CORS(app, origins=["http://localhost:3000"]) # allow outside source (frontend)
+UPLOAD_FOLDER = 'uploads/'  # Ensure this folder exists
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://root:{password.PASSWORD}@localhost:3306/Job_Nest'
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
@@ -39,33 +41,12 @@ class UserInterestedJob(db.Model):
 
 class Resume(db.Model):
     __tablename__ = 'resumes'
-    resume_style = db.Column(db.String(100), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)  # Primary key (auto-increment)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    contact_info = db.Column(db.Text, nullable=False)
+    pdf_file = db.Column(db.String(255), nullable=False)  # Path to the uploaded PDF file
 
-    skills = db.relationship('Skill', backref='resume', lazy=True)
-    educations = db.relationship('Education', backref='resume', lazy=True)
-    experiences = db.relationship('Experience', backref='resume', lazy=True)
-    submissions = db.relationship('HandedTo', backref='resume', lazy=True)
-
-
-class Skill(db.Model):
-    __tablename__ = 'skills'
-    skill_name = db.Column(db.String(100), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
-
-
-class Education(db.Model):
-    __tablename__ = 'education'
-    education_received = db.Column(db.String(255), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
-
-
-class Experience(db.Model):
-    __tablename__ = 'experience'
-    experience_worked = db.Column(db.String(255), primary_key=True)
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
-
+    user_info = db.relationship('User', backref='resume', lazy=True)  # Changed 'user' to 'user_info'
+    submissions  = db.relationship('HandedTo', backref='resume', lazy=True)
 
 class Company(db.Model):
     __tablename__ = 'companies'
@@ -79,7 +60,7 @@ class Company(db.Model):
 
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
-    resume_style = db.Column(db.String(100), db.ForeignKey('resumes.resume_style'), primary_key=True)
+    resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'), primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), primary_key=True)
     submission_date = db.Column(db.Date, nullable=False)
 
@@ -204,59 +185,103 @@ def delete_user(user_id):
     return {'message': 'User deleted'}, 200
 
 
-@app.route('/create_resume', methods=['POST'])
-def create_resume():
-    data = request.get_json()
-    resume_style = data.get('resume_style')
-    user_id = data.get('user_id')
-    contact_info = data.get('contact_info')
+@app.route('/add_resumes/<string:username>', methods=['POST'])
+def add_resume(username: str):
+    try:
+        user = User.query.filter_by(username=username).first()
 
-    if not all([resume_style, user_id, contact_info]):
-        return {'message': 'All fields are required'}, 400
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
 
-    if Resume.query.filter_by(user_id=user_id).first():
-        return {'message': 'Resume already exists for this user'}, 409
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 408
 
-    resume = Resume(resume_style=resume_style, user_id=user_id, contact_info=contact_info)
-    db.session.add(resume)
-    db.session.commit()
-    return {'message': 'Resume created'}, 201
+        file = request.files['file']
 
+        if file.filename == '':
+            
+            return jsonify({'error': 'No selected file'}), 409
 
-@app.route('/add_skill', methods=['POST'])
-def add_skill():
-    data = request.get_json()
-    skill_name = data.get('skill_name')
-    resume_style = data.get('resume_style')
+        if file and file.filename.endswith('.pdf'):
+            filename = file.filename
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
 
-    skill = Skill(skill_name=skill_name, resume_style=resume_style)
-    db.session.add(skill)
-    db.session.commit()
-    return {'message': 'Skill added'}, 201
+            # Create and save new resume
+            new_resume = Resume(user_id=user.user_id, pdf_file=file_path)
+            db.session.add(new_resume)
+            db.session.commit()
 
+            return jsonify({'message': 'Resume uploaded successfully'}), 201
+        else:
+            return jsonify({'error': 'Invalid file type. Only PDFs are allowed.'}), 400
 
-@app.route('/add_education', methods=['POST'])
-def add_education():
-    data = request.get_json()
-    education_received = data.get('education_received')
-    resume_style = data.get('resume_style')
-
-    edu = Education(education_received=education_received, resume_style=resume_style)
-    db.session.add(edu)
-    db.session.commit()
-    return {'message': 'Education added'}, 201
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
 
 
-@app.route('/add_experience', methods=['POST'])
-def add_experience():
-    data = request.get_json()
-    experience_worked = data.get('experience_worked')
-    resume_style = data.get('resume_style')
+@app.route('/resumes/<string:username>/<int:resume_id>', methods=['DELETE'])
+def delete_resume(username: str, resume_id: int):
+    try:
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
 
-    exp = Experience(experience_worked=experience_worked, resume_style=resume_style)
-    db.session.add(exp)
-    db.session.commit()
-    return {'message': 'Experience added'}, 201
+        resume = Resume.query.filter_by(id=resume_id, user_id=user.user_id).first()
+        if not resume:
+            return jsonify({'error': 'Resume not found'}), 404
+
+        # Delete the file from the server
+        if os.path.exists(resume.pdf_file):
+            os.remove(resume.pdf_file)
+
+        # Delete the resume record from the database
+        db.session.delete(resume)
+        db.session.commit()
+
+        return jsonify({'message': 'Resume deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/resumes/update/<int:resume_id>', methods=['PUT'])
+def update_resume_name(resume_id):
+    try:
+        data = request.json
+        new_file_name = data.get("fileName")
+
+        if not new_file_name:
+            return jsonify({'error': 'New file name is required'}), 400
+        
+        new_file_name = new_file_name.split("/")[-1]
+        new_file_name = new_file_name.split("\\")[-1]
+        new_file_name = os.path.join( app.config['UPLOAD_FOLDER'], new_file_name )
+        if (new_file_name[-4:] != ".pdf"):
+            new_file_name += ".pdf"
+
+        print(resume_id)
+        resume = Resume.query.get(resume_id)
+        if not resume:
+            return jsonify({'error': 'Resume not found'}), 404
+        
+        print(resume.pdf_file)
+        if not os.path.exists(resume.pdf_file):
+            return jsonify({'error': 'Resume not found'}), 404
+        os.rename(resume.pdf_file, new_file_name)
+        
+        
+        # Update the file name
+        resume.pdf_file = new_file_name
+        db.session.commit()
+
+        return jsonify({'message': 'Resume name updated successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 
 @app.route('/create_company', methods=['POST'])
@@ -311,14 +336,28 @@ def get_all_users():
     } for user in users])
 
 
-@app.route('/resumes', methods=['GET'])
-def get_all_resumes():
-    resumes = Resume.query.all()
-    return jsonify([{
-        'resume_style': r.resume_style,
-        'user_id': r.user_id,
-        'contact_info': r.contact_info
-    } for r in resumes])
+@app.route('/resumes/<string:username>', methods=['GET'])
+def get_all_resumes(username: str):
+    try:
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        resumes = Resume.query.filter_by(user_id=user.user_id).all()
+
+        # Convert the resume objects to a list of dictionaries for JSON response
+        resume_list = [
+            {
+                'id': resume.id,
+                'pdf_file': resume.pdf_file,
+                'user_id': resume.user_id
+            } for resume in resumes
+        ]
+
+        return jsonify(resume_list), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/jobs', methods=['GET'])
@@ -363,6 +402,6 @@ def get_interested_jobs(user_id):
 if __name__ == '__main__':
     create_db.create_db()
     with app.app_context():
-        db.drop_all()   # Drops all existing tables
+        #db.drop_all()   # Drops all existing tables
         db.create_all() # Recreates tables from models
-    app.run(host='0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80, debug=True)
