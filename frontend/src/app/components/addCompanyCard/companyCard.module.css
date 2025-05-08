@@ -1,0 +1,71 @@
+.card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--off-main-color);
+    color: var(--foreground);
+    padding: 1.5rem 2rem;
+    border-radius: 25px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    max-width: 600px;
+    width: 100%;
+    margin: 2.2rem auto;
+    margin-bottom: 25px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .deleteBtn {
+    cursor: pointer;
+    background-color: #eb1400;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    margin-top: 10px;
+  }
+  
+  .deleteBtn:hover {
+    background-color: #ff1500;
+    transition: 0.2s;
+  }
+  
+  .deleteBtn:active {
+    opacity: 0.7;
+    transition: 0.15s;
+  }
+  
+  .fileName {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: left;
+  }
+  
+  .details p {
+    margin: 4px 0;
+    margin-left: 50px;
+    font-size: 14px;
+  }
+
+  .openBtn {
+    background-color: #2a7ae4;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .openBtn:hover {
+    background-color: #4395ff;
+    transition: 0.2s;
+  }
+
+  .openBtn:active {
+    opacity: 0.7;
+    transition: 0.15s;
+  }
+  

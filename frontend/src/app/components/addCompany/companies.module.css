@@ -1,0 +1,28 @@
+.cardContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.buttonCompany {
+  cursor: pointer;
+  background-color: #2a7ae4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  margin-top: 20px;
+  padding: 10px 40px;
+  transition: 0.2s;
+}
+
+.buttonCompany:hover {
+  background-color: #4395ff;
+  padding: 15px 45px;
+}
+
+.buttonCompany:active {
+  opacity: 0.7;
+  transition: 0.15s;
+}
