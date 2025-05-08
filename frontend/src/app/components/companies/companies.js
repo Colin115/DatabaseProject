@@ -40,9 +40,6 @@ const Companies = ({ username }) => {
       });
 
       if (response.ok) {
-        const createdJob = await response.json();
-        setCompanies((prev) => [...prev, createdJob]);
-        setShowAddJob(true);
         fetchJobs();
       }
     } catch (error) {
@@ -113,8 +110,8 @@ const Companies = ({ username }) => {
       <div className={styles.cardsContainer}>
         {companies.map((company) => (
           <CompanyCard
-            username={username}
             key={company.id}
+            username={username}
             {...company}
             onUpdate={handleUpdate}
             onUpdateResume={handleUpdateResume}
