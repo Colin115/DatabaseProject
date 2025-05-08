@@ -3,13 +3,13 @@ import React, { useState } from "react";
 import CompanyCard from "../companyCard/companyCard";
 import styles from "./Companies.module.css";
 
-const Companies = () => {
+const Companies = ({ resumes }) => {
   const [companies, setCompanies] = useState([]);
   const [showAddJob, setShowAddJob] = useState(false);
 
   const handleAddJob = () => {
     const newJob = {
-      id: Date.now(), 
+      id: Date.now(),
       jobName: `Job ${companies.length + 1}`,
       salary: "$120,000.00",
       progress: "0%",
@@ -40,8 +40,9 @@ const Companies = () => {
         <div className={styles.cardsContainer}>
           {companies.map((company) => (
             <CompanyCard
-              key={company.id} 
+              key={company.id}
               {...company}
+              resumes={resumes || []} 
               onUpdate={handleUpdate}
               onRemove={() => handleRemove(company.id)}
             />

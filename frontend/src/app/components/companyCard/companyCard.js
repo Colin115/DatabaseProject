@@ -11,8 +11,9 @@ export default function CompanyCard({
   title,
   skills,
   requirements,
+  resumes = [], 
   onUpdate,
-  onRemove, 
+  onRemove,
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const [editData, setEditData] = useState({
@@ -23,6 +24,7 @@ export default function CompanyCard({
     title,
     skills,
     requirements,
+    selectedResume: "", 
   });
 
   const handleChange = (e) => {
@@ -46,6 +48,26 @@ export default function CompanyCard({
           <p><strong>Title:</strong> {title}</p>
           <p><strong>Skills:</strong> {skills}</p>
           <p><strong>Requirements:</strong> {requirements}</p>
+          <label>
+            <strong>Resume Used:</strong>
+            <select
+              name="selectedResume"
+              value={editData.selectedResume}
+              onChange={(e) => {
+                e.stopPropagation(); 
+                handleChange(e);
+              }}
+              onClick={(e) => e.stopPropagation()} 
+              className={styles.resumeDropdown}
+            >
+              <option value="">None</option>
+              {resumes.map((resume) => (
+                <option key={resume.id} value={resume.fileName}>
+                  {resume.fileName}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <button
           onClick={(e) => {
