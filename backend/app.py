@@ -1,13 +1,23 @@
+'''
+----------------------
+Imports
+----------------------
+'''
 from flask import Flask, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload
-
 from datetime import date
 from flask_cors import CORS
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import password
 import create_db
+
+'''
+----------------------
+Application Setup
+----------------------
+'''
 app = Flask(__name__, static_folder='static')
 CORS(app, origins=["http://localhost:3000"]) # allow outside source (frontend)
 UPLOAD_FOLDER = 'uploads/'  # Ensure this folder exists
@@ -19,9 +29,11 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 db = SQLAlchemy(app)
 
-# ---------- MODELS ----------
-
-
+'''
+----------------------
+Database tables
+----------------------
+'''
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
@@ -34,14 +46,10 @@ class User(db.Model):
 
     resumes = db.relationship('Resume', backref='user', lazy=True)
     posted_jobs = db.relationship('Job', backref='user', lazy=True)
-
-
 class UserInterestedJob(db.Model):
     __tablename__ = 'user_interested_jobs'
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
-
-
 class Resume(db.Model):
     __tablename__ = 'resumes'
     id = db.Column(db.Integer, primary_key=True)  # Primary key (auto-increment)
@@ -50,7 +58,6 @@ class Resume(db.Model):
 
     user_info = db.relationship('User', backref='resume', lazy=True)  # Changed 'user' to 'user_info'
     submissions  = db.relationship('HandedTo', backref='resume', lazy=True)
-
 class Company(db.Model):
     __tablename__ = 'companies'
     company_id = db.Column(db.Integer, primary_key=True)
@@ -58,14 +65,11 @@ class Company(db.Model):
     location = db.Column(db.String(255), nullable=False)
 
     jobs = db.relationship('Job', backref='company', lazy=True)
-
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
     resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'), primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
     submission_date = db.Column(db.Date, nullable=False)
-
-
 class Job(db.Model):
     __tablename__ = 'jobs'
     job_id = db.Column(db.Integer, primary_key=True)
@@ -83,38 +87,35 @@ class Job(db.Model):
     engineering = db.relationship('Engineering', backref='job', uselist=False)
     medical = db.relationship('Medical', backref='job', uselist=False)
     submissions = db.relationship('HandedTo', backref='company', lazy=True)
-
-
 class Economy(db.Model):
     __tablename__ = 'economy'
     economy_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
-
-
 class Management(db.Model):
     __tablename__ = 'management'
     management_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
-
-
 class Engineering(db.Model):
     __tablename__ = 'engineering'
     engineering_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
-
-
 class Medical(db.Model):
     __tablename__ = 'medical'
     medical_id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), unique=True, nullable=False)
 
 
-# ---------- ROUTES ----------
-
+'''
+----------------------
+API Endpoints
+----------------------
+'''
+#------- HOME PAGE -------#
 @app.route('/')
 def home():
     return '<h1>HOME</h1>'
 
+#------- Test Database -------#
 @app.route('/test_db')
 def test_db():
     try:
@@ -124,6 +125,7 @@ def test_db():
     except Exception as e:
         return {'message': 'Database connection failed', 'error': str(e)}, 500
 
+#------- View Pdf -------#
 @app.route("/pdfs/<string:filename>")
 def serve_pdf(filename):
     filename = filename.split("/")[-1]
@@ -134,6 +136,7 @@ def serve_pdf(filename):
     else:
         return "File not found", 404
 
+#------- Create User -------#
 @app.route('/create_user', methods=['POST'])
 def create_user():
     data = request.get_json()
@@ -157,7 +160,7 @@ def create_user():
     db.session.commit()
     return {'message': 'User created', 'user_id': user.user_id}, 201
 
-
+#------- Login -------#
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -172,7 +175,7 @@ def login():
 
     return {'message': 'Login successful', 'user_id': user.user_id}, 200
 
-
+#------- Edit User Data -------#
 @app.route('/edit_user/<int:user_id>', methods=['PUT'])
 def edit_user(user_id):
     data = request.get_json()
@@ -187,7 +190,7 @@ def edit_user(user_id):
     db.session.commit()
     return {'message': 'User updated'}, 200
 
-
+#------- Delete User Profile -------#
 @app.route('/delete_user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     user = User.query.get(user_id)
@@ -198,7 +201,7 @@ def delete_user(user_id):
     db.session.commit()
     return {'message': 'User deleted'}, 200
 
-
+#------- Add Resume -------#
 @app.route('/add_resumes/<string:username>', methods=['POST'])
 def add_resume(username: str):
     try:
@@ -234,7 +237,7 @@ def add_resume(username: str):
         print(e)
         return jsonify({'error': str(e)}), 500
 
-
+#------- Delete Resume -------#
 @app.route('/resumes/<string:username>/<int:resume_id>', methods=['DELETE'])
 def delete_resume(username: str, resume_id: int):
     try:
@@ -259,7 +262,7 @@ def delete_resume(username: str, resume_id: int):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
+#------- Update Resume Name -------#
 @app.route('/resumes/update/<int:resume_id>', methods=['PUT'])
 def update_resume_name(resume_id):
     try:
@@ -295,9 +298,7 @@ def update_resume_name(resume_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-
-
+#------- Create Company -------#
 @app.route('/create_company', methods=['POST'])
 def create_company():
     data = request.get_json()
@@ -312,10 +313,7 @@ def create_company():
     db.session.commit()
     return {'message': 'Company created', 'company_id': company.company_id}, 201
 
-
-
-    
-
+#------- Add Job -------#
 @app.route('/jobs/<string:username>', methods=['POST'])
 def add_job(username):
     data = request.get_json()
@@ -337,7 +335,7 @@ def add_job(username):
     
     return jsonify({"message": "Resume associated with job successfully"}), 200
 
-
+#------- Edit Job Data -------#
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def edit_job(job_id):
     data = request.get_json()
@@ -363,6 +361,7 @@ def edit_job(job_id):
         "company_id": job.company_id
     }), 200
 
+#------- Delete Job -------#
 @app.route('/jobs/<int:job_id>', methods=['DELETE'])
 def delete_job(job_id):
     # Delete associated resumes in HandedTo
@@ -379,7 +378,7 @@ def delete_job(job_id):
     db.session.commit()
     return jsonify({"message": "Job and associated resumes deleted successfully"}), 200
 
-
+#------- Associate a Users Resume with a Job -------#
 @app.route('/jobs/<int:job_id>/associate_resume', methods=['POST'])
 def associate_resume(job_id):
     data = request.get_json()
@@ -416,8 +415,13 @@ def associate_resume(job_id):
 
 
 
-# ---------- QUERIES ----------
+'''
+----------------------
+Query API Endpoints
+----------------------
+'''
 
+#------- Get Username  -------#
 @app.route('/get_user/<string:username>', methods=['GET'])
 def get_all_users(username: str):
     try:
@@ -437,7 +441,7 @@ def get_all_users(username: str):
         print(e)
         return jsonify({'error': str(e)}), 500
 
-
+#------- Get Resumes -------#
 @app.route('/resumes/<string:username>', methods=['GET'])
 def get_all_resumes(username: str):
     try:
@@ -464,19 +468,7 @@ def get_all_resumes(username: str):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/jobs', methods=['GET'])
-def get_all_jobs():
-    jobs = Job.query.all()
-    return jsonify([{
-        'job_id': j.job_id,
-        'availability': j.availability,
-        'salary': float(j.salary),
-        'company_id': j.company_id,
-        'requirements': j.requirements,
-        'user_id': j.user_id
-    } for j in jobs])
-
-
+#------- Get Companies -------#
 @app.route('/companies', methods=['GET'])
 def get_all_companies():
     companies = Company.query.all()
@@ -486,8 +478,7 @@ def get_all_companies():
         'location': c.location
     } for c in companies])
 
-    
-
+#------- Get Jobs and Associated Resume -------#
 @app.route('/jobs/<string:username>', methods=['GET'])
 def get_jobs(username):
     user = User.query.filter_by(username=username).first()
@@ -521,6 +512,8 @@ def get_jobs(username):
     ]
 
     return jsonify(job_list), 200
+
+#------- Get Associated Resume -------#
 @app.route('/jobs/<int:job_id>/associated_resumes', methods=['GET'])
 def get_associated_resumes(job_id):
     associations = HandedTo.query.filter_by(job_id=job_id).all()
