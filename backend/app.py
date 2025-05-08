@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import joinedload
+
+from datetime import date
 from flask_cors import CORS
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -55,12 +58,11 @@ class Company(db.Model):
     location = db.Column(db.String(255), nullable=False)
 
     jobs = db.relationship('Job', backref='company', lazy=True)
-    submissions = db.relationship('HandedTo', backref='company', lazy=True)
 
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
     resume_id = db.Column(db.Integer, db.ForeignKey('resumes.id'), primary_key=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), primary_key=True)
     submission_date = db.Column(db.Date, nullable=False)
 
 
@@ -80,6 +82,8 @@ class Job(db.Model):
     management = db.relationship('Management', backref='job', uselist=False)
     engineering = db.relationship('Engineering', backref='job', uselist=False)
     medical = db.relationship('Medical', backref='job', uselist=False)
+    submissions = db.relationship('HandedTo', backref='company', lazy=True)
+
 
 class Economy(db.Model):
     __tablename__ = 'economy'
@@ -322,15 +326,8 @@ def add_job(username):
     db.session.add(new_job)
     db.session.commit()
     
-    return jsonify({
-        "id": new_job.job_id,
-        "salary": str(new_job.salary),
-        "requirements": new_job.requirements,
-        "skills": new_job.skills,
-        "title": new_job.title,
-        "progress": new_job.progress,
-        "company_id": new_job.company_id
-    }), 201
+    return jsonify({"message": "Resume associated with job successfully"}), 200
+
 
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def edit_job(job_id):
@@ -359,13 +356,55 @@ def edit_job(job_id):
 
 @app.route('/jobs/<int:job_id>', methods=['DELETE'])
 def delete_job(job_id):
+    # Delete associated resumes in HandedTo
+    associated_resumes = HandedTo.query.filter_by(job_id=job_id).all()
+    for resume in associated_resumes:
+        db.session.delete(resume)
+    
+    # Delete the job itself
     job = Job.query.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
 
     db.session.delete(job)
     db.session.commit()
-    return jsonify({"message": "Job deleted successfully"}), 200
+    return jsonify({"message": "Job and associated resumes deleted successfully"}), 200
+
+
+@app.route('/jobs/<int:job_id>/associate_resume', methods=['POST'])
+def associate_resume(job_id):
+    data = request.get_json()
+    resume_id = data.get("resume_id")
+
+    
+    # Check if the job and resume exist
+    job = Job.query.get(job_id)
+
+    if resume_id == "-1":
+        #delete
+        associated_resumes = HandedTo.query.filter_by(job_id=job_id).all()
+        for resume in associated_resumes:
+            db.session.delete(resume)
+            db.session.commit()
+            return jsonify({"message": "Resume disassociated with job successfully"}), 200
+        
+    resume = Resume.query.get(resume_id)
+
+    if not job or not resume:
+        return jsonify({"error": "Invalid Job or Resume ID"}), 404
+
+    # Check if the pair already exists
+    existing = HandedTo.query.filter_by(resume_id=resume_id, job_id=job_id).first()
+    if existing:
+        return jsonify({"message": "Resume is already associated with this job"}), 200
+
+    # Create HandedTo entry
+    handed_to = HandedTo(resume_id=resume_id, job_id=job_id, submission_date=date.today())
+    db.session.add(handed_to)
+    db.session.commit()
+
+    return jsonify({"message": "Resume associated with job successfully"}), 200
+
 
 
 # ---------- QUERIES ----------
@@ -439,23 +478,51 @@ def get_all_companies():
     } for c in companies])
 
     
+
 @app.route('/jobs/<string:username>', methods=['GET'])
 def get_jobs(username):
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    jobs = Job.query.filter_by(user_id=user.user_id)
-    
-    return jsonify([ {
-        "id": job.job_id,
-        "salary": str(job.salary),
-        "requirements": job.requirements,
-        "skills": job.skills,
-        "title": job.title,
-        "progress": job.progress,
-        "company_id": job.company_id
-    } for job in jobs]), 200
+    jobs = (
+        db.session.query(Job, Resume)
+        .outerjoin(HandedTo, Job.job_id == HandedTo.job_id)
+        .outerjoin(Resume, HandedTo.resume_id == Resume.id)
+        .filter(Job.user_id == user.user_id)
+        .all()
+    )
+
+    job_list = [
+        {
+            "id": job.job_id,
+            "salary": str(job.salary),
+            "requirements": job.requirements,
+            "skills": job.skills,
+            "title": job.title,
+            "progress": job.progress,
+            "company_id": job.company_id,
+            "selectedResume": {
+                "id": resume.id,
+                "pdf_file": resume.pdf_file,
+                "user_id": resume.user_id
+            } if resume else None
+        }
+        for job, resume in jobs
+    ]
+
+    return jsonify(job_list), 200
+@app.route('/jobs/<int:job_id>/associated_resumes', methods=['GET'])
+def get_associated_resumes(job_id):
+    associations = HandedTo.query.filter_by(job_id=job_id).all()
+    resumes = [
+        {
+            "resume_id": assoc.resume_id,
+            "submission_date": assoc.submission_date
+        } for assoc in associations
+    ]
+    return jsonify(resumes), 200
+
 
 
 # ---------- APP ENTRY ----------

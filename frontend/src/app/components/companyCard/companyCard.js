@@ -12,7 +12,9 @@ export default function CompanyCard({
   title,
   skills,
   requirements,
+  selectedResume,
   onUpdate,
+  onUpdateResume,
   onRemove,
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
@@ -25,9 +27,8 @@ export default function CompanyCard({
     title,
     skills,
     requirements,
-    selectedResume: "", 
+    selectedResume,
   });
-
 
   useEffect(() => {
     const fetchUserResumes = async () => {
@@ -51,40 +52,74 @@ export default function CompanyCard({
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
   };
+  
+  const handleResumeChange = async (resumeId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/jobs/${id}/associate_resume`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume_id: resumeId }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to associate resume");
+        return;
+      }
+
+      // Update local state
+      setEditData((prev) => ({ ...prev, selectedResume: resumeId }));
+
+      // Notify parent to directly update resume in the list
+      onUpdateResume(id, resumeId);
+    } catch (error) {
+      console.error("Error associating resume:", error);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdate(editData); 
+    onUpdate(editData);
     setPopupOpen(false);
   };
-
-  console.log(resumes)
 
   return (
     <>
       <div className={styles.card} onClick={() => setPopupOpen(true)}>
         <h2 className={styles.jobName}>{title}</h2>
         <div className={styles.details}>
-          <p><strong>Salary:</strong> {salary}</p>
-          <p><strong>Progress:</strong> {progress}</p>
-          <p><strong>Skills:</strong> {skills}</p>
-          <p><strong>Requirements:</strong> {requirements}</p>
+          <p>
+            <strong>Salary:</strong> {salary}
+          </p>
+          <p>
+            <strong>Progress:</strong> {progress}
+          </p>
+          <p>
+            <strong>Skills:</strong> {skills}
+          </p>
+          <p>
+            <strong>Requirements:</strong> {requirements}
+          </p>
           <label>
             <strong>Resume Used:</strong>
             <select
               name="selectedResume"
-              value={editData.selectedResume}
+              value={editData.selectedResume ? editData.selectedResume.id : ""}
               onChange={(e) => {
-                e.stopPropagation(); 
-                handleChange(e);
+                e.stopPropagation();
+                handleResumeChange(e.target.value); // Pass the resume ID directly
               }}
-              onClick={(e) => e.stopPropagation()} 
+              onClick={(e) => e.stopPropagation()}
               className={styles.resumeDropdown}
             >
-              <option value="">None</option>
+              <option key="-1" value="-1">
+                None
+              </option>
               {resumes.map((resume) => (
-                <option key={resume.id} value={resume.pdf_file}>
-                  {resume.pdf_file}
+                <option key={resume.id} value={resume.id}>
+                  {resume.pdf_file.split("/").pop()}
                 </option>
               ))}
             </select>
@@ -92,8 +127,8 @@ export default function CompanyCard({
         </div>
         <button
           onClick={(e) => {
-            e.stopPropagation(); 
-            onRemove(); 
+            e.stopPropagation();
+            onRemove();
           }}
           className={styles.removeButton}
         >

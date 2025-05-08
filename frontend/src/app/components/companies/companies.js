@@ -79,6 +79,15 @@ const Companies = ({ username }) => {
     }
   };
 
+  const handleUpdateResume = (jobId, resumeId) => {
+    setCompanies((prev) =>
+      prev.map((comp) =>
+        comp.id === jobId ? { ...comp, selectedResume: resumeId } : comp
+      )
+    );
+  };
+  
+
   const handleRemove = async (idToRemove) => {
     try {
       const response = await fetch(`http://127.0.0.1:80/jobs/${idToRemove}`, {
@@ -108,6 +117,7 @@ const Companies = ({ username }) => {
             key={company.id}
             {...company}
             onUpdate={handleUpdate}
+            onUpdateResume={handleUpdateResume}
             onRemove={() => handleRemove(company.id)}
           />
         ))}
