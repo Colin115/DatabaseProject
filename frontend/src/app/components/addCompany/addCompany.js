@@ -23,28 +23,48 @@ const Companies = ({ username }) => {
     }
   };
 
-  const handleUpdate = async (updatedCompany) => {
-      try {
-        const response = await fetch(
-          `http://127.0.0.1:80/company/${updatedCompany.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedCompany),
-          }
-        );
-  
-        if (response.ok) {
-          const data = await response.json();
-          fetchCompanies();
-        } else {
-          console.error("Failed to update job");
+  const handleRemoveCompany = async (companyId) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/company/${companyId}`,
+        {
+          method: "DELETE",
         }
-      } catch (error) {
-        console.error("Error updating job:", error);
+      );
+
+      if (response.ok) {
+        fetchCompanies()
+        console.log("Resume deleted successfully");
+      } else {
+        console.error("Failed to delete resume:", response.statusText);
       }
+    } catch (error) {
+      console.error("Error deleting resume:", error);
+    }
+  };
+
+  const handleUpdate = async (updatedCompany) => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/company/${updatedCompany.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedCompany),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        fetchCompanies();
+      } else {
+        console.error("Failed to update job");
+      }
+    } catch (error) {
+      console.error("Error updating job:", error);
+    }
   };
 
   const handleAddCompany = async () => {
@@ -52,7 +72,7 @@ const Companies = ({ username }) => {
       name: "Click Me to Edit",
       location: "",
       rating: "",
-      id: -1
+      id: -1,
     };
 
     try {
@@ -77,8 +97,6 @@ const Companies = ({ username }) => {
     }
   };
 
-  
-
   useEffect(() => {
     if (username) fetchCompanies();
   }, [username]);
@@ -94,6 +112,7 @@ const Companies = ({ username }) => {
             key={company.id}
             companyData={company}
             onUpdate={handleUpdate}
+            onRemove={() => handleRemoveCompany(company.id)}
           />
         ))}
       </div>

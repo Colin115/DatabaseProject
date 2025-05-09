@@ -290,19 +290,6 @@ def update_resume_name(resume_id):
         return jsonify({'error': str(e)}), 500
 
 
-
-#------- Delete Company -------#
-@app.route('/companies/<int:company_id>', methods=['DELETE'])
-def delete_company(company_id):
-    company = Company.query.get(company_id)
-    if not company:
-        return jsonify({"error": "Company not found"}), 404
-
-    db.session.delete(company)
-    db.session.commit()
-
-    return jsonify({"message": "Company deleted successfully"}), 200
-
 #------- Add Job -------#
 @app.route('/jobs/<string:username>', methods=['POST'])
 def add_job(username):
@@ -472,6 +459,23 @@ def edit_company(company_id):
 
     db.session.commit()
     return jsonify({"message": "Company edited successfully"}), 200
+
+#------- Delete Company -------#
+@app.route('/company/<int:company_id>', methods=['DELETE'])
+def delete_company(company_id):
+    # Delete any references to the companies from jobs
+    associated_jobs = Job.query.filter_by(company_id=company_id).all()
+    for job in associated_jobs:
+        job.compand_id = None
+    
+    # Delete the job itself
+    company = Company.query.get(company_id)
+    if not company:
+        return jsonify({"error": "Job not found"}), 404
+
+    db.session.delete(company)
+    db.session.commit()
+    return jsonify({"message": "Job and associated resumes deleted successfully"}), 200
 
 
 '''
