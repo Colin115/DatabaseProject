@@ -546,31 +546,20 @@ def get_all_companies():
 
 
 #----- User Job Filtering -----#
-@app.route('/user/<string:username>/jobs/filter', methods=['GET'])
-def filter_user_jobs(user_id):
+@app.route('/user/<string:username>/jobs/filter/<string:filter>', methods=['GET'])
+def filter_user_jobs(user_id, filter):
     # Query parameters
-    title = request.args.get('title', type=str)
-    progress = request.args.get('progress', type=str)
-    company_name = request.args.get('company', type=str)
-    min_salary = request.args.get('min_salary', type=float)
 
     #Get job IDs the user is interested in
     user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id.id).subquery()
 
     query = db.session.query(Job).filter(Job.job_id.in_(user_job_ids))
 
-    #Apply filters if present
-    if title:
-        query = query.filter(Job.title.ilike(f"%{title}%"))
-
-    if progress:
-        query = query.filter(Job.progress.ilike(f"%{progress}%"))
-
-    if company_name:
-        query = query.join(Company).filter(Company.name.ilike(f"%{company_name}%"))
+    # if company_name:
+    #     query = query.join(Company).filter(Company.name.ilike(f"%{company_name}%"))
     
-    if min_salary:
-        query = query.filter(Job.salary >= min_salary)
+    # if min_salary:
+    #     query = query.filter(Job.salary >= min_salary)
 
     # Step 4: Return the filtered jobs
     jobs = query.all()

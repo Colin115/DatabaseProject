@@ -5,6 +5,7 @@ import styles from "./Companies.module.css";
 
 const Companies = ({ username }) => {
   const [companies, setCompanies] = useState([]);
+  const [filterType, setFilterType] = useState("None");
   const [showAddJob, setShowAddJob] = useState(false);
 
   const fetchJobs = async () => {
@@ -102,15 +103,39 @@ const Companies = ({ username }) => {
     }
   };
 
+
+  const handleFilterChange = () => {
+    if (filterType === "None") {
+      fetchJobs();
+      return;
+    }
+    
+    
+  }
+
   useEffect(() => {
     if (username) fetchJobs();
-  }, [username]);
+    if (filterType) handleFilterChange();
+  }, [username, filterType]);
 
   return (
     <div className={styles.container}>
       <button onClick={handleAddJob} className={styles.addJobButton}>
         Add Job
       </button>
+       <select
+        onChange={(e) => setFilterType(e.target.value)}
+        className={styles.filterDropdown}
+        defaultValue=""
+      >
+        <option value="" disabled>
+          Filter by
+        </option>
+        <option value="none">None</option>
+        <option value="company">Company</option>
+        <option value="salary">Salary Range</option>
+      </select>
+
       <div className={styles.cardsContainer}>
         {companies.map((company) => (
           <CompanyCard
