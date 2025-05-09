@@ -657,7 +657,7 @@ def user_companies(username):
         "id": c.company_id
         } for c in companies]), 200
 
-@app.route('/user/<str:username>/companies/filter', methods=['GET'])
+@app.route('/user/<string:username>/companies/filter', methods=['GET'])
 def filter_user_companies(user_id):
     # Get filters from query params
     name = request.args.get('name', default='', type=str)
@@ -694,7 +694,7 @@ def filter_user_companies(user_id):
     } for c in companies])
 
 #------ Detailed Company Data ------- #
-@app.route('/user/<str:username>/company/<int:company_id>', methods=['GET'])
+@app.route('/user/<string:username>/company/<int:company_id>', methods=['GET'])
 def get_user_company_details(user_id, company_id):
     company = Company.query.get(company_id)
     if not company:

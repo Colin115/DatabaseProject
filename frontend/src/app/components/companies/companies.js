@@ -7,10 +7,9 @@ const Companies = ({ username }) => {
   const [companies, setCompanies] = useState([]);
   const [rcompanies, setRCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState();
-  const [filterType, setFilterType] = useState("None");
+  const [filterType, setFilterType] = useState("none");
   const [minSalary, setMinSalary] = useState(0);
   const [maxSalary, setMaxSalary] = useState(0);
-  const [showAddJob, setShowAddJob] = useState(false);
 
   const fetchJobs = async () => {
     try {
@@ -169,7 +168,7 @@ const Companies = ({ username }) => {
   };
 
   useEffect(() => {
-    if (username) fetchJobs();
+    //if (username) fetchJobs();
     if (selectedCompany) handleFilterChange();
     if (username) fetchCompanies();
     if (filterType) handleFilterChange();
