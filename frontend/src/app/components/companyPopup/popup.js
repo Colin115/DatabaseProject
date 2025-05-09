@@ -9,6 +9,21 @@ const Popup = ({
   onSubmit,
 }) => {
   if (!popupOpen) return null;
+  const progressOptions = [
+    "Just Applied",
+    "Interviewing - First Stage",
+    "Interviewing - Final Stage",
+    "Offer Received",
+    "Hired",
+  ];
+
+  const educationOptions = [
+    "High School Diploma",
+    "Associate's Degree",
+    "Bachelor's Degree",
+    "Master's Degree",
+    "Doctorate",
+  ];
 
   return (
     <div className={styles.container} onClick={() => setPopupOpen(false)}>
@@ -17,7 +32,7 @@ const Popup = ({
         onClick={(e) => e.stopPropagation()} // Prevent closing on inner click
       >
         <form onSubmit={onSubmit}>
-            <input
+          <input
             name="title"
             placeholder="Job Title"
             value={companyData.jobName}
@@ -30,23 +45,41 @@ const Popup = ({
             onChange={onChange}
           />
           <input
-            name="progress"
-            placeholder="Progress"
-            value={companyData.progress}
-            onChange={onChange}
-          />
-          <input
             name="skills"
             placeholder="Skills"
             value={companyData.skills}
             onChange={onChange}
           />
-          <input
-            name="requirements"
-            placeholder="Requirements"
-            value={companyData.requirements}
-            onChange={onChange}
-          />
+          <label>
+            <strong  className={styles.wordsss}>Progress:</strong>
+            <select
+              name="progress"
+              value={companyData.progress || ""}
+              onChange={onChange}
+            >
+              {progressOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <strong className={styles.wordsss}>Education Required:</strong>
+            <select
+              name="requirements"
+              value={companyData.requirements || ""}
+              onChange={onChange}
+            >
+              {educationOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div className={styles.actions}>
             <button
               className={styles.cancelBtn}

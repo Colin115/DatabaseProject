@@ -652,11 +652,11 @@ def get_jobs(username):
     )
     
     # Aggregation Data based on filtered query
-    total_jobs = jobs.count()
+    total_jobs = len(jobs)
     avg_salary = db.session.query(db.func.avg(Job.salary)).filter(Job.user_id == user.user_id).scalar()
     max_salary_value = db.session.query(db.func.max(Job.salary)).filter(Job.user_id == user.user_id).scalar()
     min_salary_value = db.session.query(db.func.min(Job.salary)).filter(Job.user_id == user.user_id).scalar()
-
+    
 
  
     job_list = [

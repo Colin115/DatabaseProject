@@ -5,12 +5,10 @@
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
-    /* semi-transparent background */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    /* high enough to be above everything */
 }
 
 .popupContent {
@@ -20,6 +18,7 @@
     width: 90%;
     max-width: 500px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .popupContent form {
@@ -28,11 +27,29 @@
     gap: 1rem;
 }
 
-.popupContent input {
+.popupContent input,
+.popupContent select {
     padding: 0.5rem;
     font-size: 1rem;
     border: 1px solid var(--border-color);
     border-radius: 6px;
+    background-color: white !important;
+}
+
+.popupContent input::placeholder,
+.popupContent select {
+    color: var(--text-color-opp);
+}
+
+.popupContent label {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.wordsss {
+    color: white;
 }
 
 .actions {
@@ -47,12 +64,37 @@
     border-radius: 15px;
     width: 40%;
     height: 5vh;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .submitBtn {
     background-color: var(--primary);
+    color: var(--text-color);
+}
+
+.submitBtn:hover {
+    background-color: #36a420;
 }
 
 .cancelBtn {
     background-color: red;
+    color: var(--text-color);
+}
+
+.cancelBtn:hover {
+    background-color: darkred;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
