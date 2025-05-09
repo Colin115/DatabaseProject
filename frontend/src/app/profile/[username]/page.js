@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import Header from "../../components/header";
 import Companies from "../../components/companies/companies";
 import Resumes from "../../components/resumes/resumes";
+import AddCompany from "../../components/addCompany/addCompany"
 
 export default function Profile({ params }) {
   const [username, setUsername] = useState("");
@@ -60,12 +61,16 @@ export default function Profile({ params }) {
       </div>
       <div className={styles.profileContent}>
         <div className={styles.column}>
-          <h3>Companies</h3>
+          <h3>Jobs</h3>
           <Companies username={username} />
         </div>
         <div className={styles.column}>
           <h3>Resumes</h3>
           <Resumes username={username} />
+        </div>
+        <div className={styles.column}>
+          <h3>Companies</h3>
+          <AddCompany username={username} />
         </div>
       </div>
     </div>
