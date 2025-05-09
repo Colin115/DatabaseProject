@@ -4,46 +4,84 @@ import React, { useState, useEffect } from "react";
 import CompanyCard from "../addCompanyCard/addCompanyCard";
 import styles from "./companies.module.css";
 
-const Companies = () => {
+const Companies = ({ username }) => {
   const [companyData, setCompanyData] = useState([]);
 
-  const handleUpdate = async (updatedJob) => {
-    setCompanyData((prev) =>
-      prev.map((comp) => (comp.name === updatedJob.name ? updatedJob : comp))
-    );
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/users/${username}/companies`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCompanyData(data);
+      } else {
+        console.error("Failed to fetch jobs");
+      }
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
   };
+
+  const handleUpdate = async (updatedCompany) => {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:80/company/${updatedCompany.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedCompany),
+          }
+        );
+  
+        if (response.ok) {
+          const data = await response.json();
+          fetchCompanies();
+        } else {
+          console.error("Failed to update job");
+        }
+      } catch (error) {
+        console.error("Error updating job:", error);
+      }
+  };
+
   const handleAddCompany = async () => {
     const newCompany = {
       name: "Click Me to Edit",
       location: "",
       rating: "",
+      id: -1
     };
-    setCompanyData((prev) => [...prev, newCompany]);
 
+    try {
+      const response = await fetch(`http://127.0.0.1:80/company/${username}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newCompany),
+      });
 
-    // try {
-
-    //   const response = await fetch(
-    //     `http://127.0.0.1:80/jobs/${updatedJob.id}`,
-    //     {
-    //       method: "PUT",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       body: JSON.stringify(updatedJob),
-    //     }
-    //   );
-
-    //   if (response.ok) {
-    //     const data = await response.json();
-
-    //   } else {
-    //     console.error("Failed to update job");
-    //   }
-    // } catch (error) {
-    //   console.error("Error updating job:", error);
-    // }
+      if (response.ok) {
+        const data = await response.json();
+        fetchCompanies();
+      } else {
+        const errorData = await response.json(); // Extract JSON error data
+        alert(errorData.error);
+        console.error("Failed to update job");
+      }
+    } catch (error) {
+      console.error("Error updating job:", error);
+    }
   };
+
+  
+
+  useEffect(() => {
+    if (username) fetchCompanies();
+  }, [username]);
 
   return (
     <div>
@@ -53,7 +91,7 @@ const Companies = () => {
       <div className={styles.cardContainer}>
         {companyData.map((company, index) => (
           <CompanyCard
-            key={index}
+            key={company.id}
             companyData={company}
             onUpdate={handleUpdate}
           />

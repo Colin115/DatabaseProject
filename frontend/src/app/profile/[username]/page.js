@@ -62,7 +62,7 @@ export default function Profile({ params }) {
       <div className={styles.profileContent}>
         <div className={styles.column}>
           <h3>Jobs</h3>
-          <Companies username={username} />
+          {/*<Companies username={username} />*/}
         </div>
         <div className={styles.column}>
           <h3>Resumes</h3>

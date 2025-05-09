@@ -62,8 +62,9 @@ class Company(db.Model):
     __tablename__ = 'companies'
     company_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
-    location = db.Column(db.String(255), nullable=False)
-
+    location = db.Column(db.String(255), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
     jobs = db.relationship('Job', backref='company', lazy=True)
 class HandedTo(db.Model):
     __tablename__ = 'handed_to'
@@ -397,6 +398,63 @@ def associate_resume(job_id):
     return jsonify({"message": "Resume associated with job successfully"}), 200
 
 
+#------- Add Company -------#
+@app.route('/company/<string:username>', methods=['POST'])
+def add_company(username):
+    # Retrieve job information
+    data = request.get_json()
+    
+    # Retrieve user information and ensure user exists
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+
+    if not data.get('name'):
+        return jsonify({"error", "company must have a name"}), 400
+    
+    print(data.get('name'))
+    companies = Company.query.filter_by(name=data.get('name')).all()
+    
+    if companies:
+        return jsonify({"error": "company already created"}), 408
+    
+    if data.get('rating') == '':
+        data['rating'] = 0
+    
+    # Create new job entry and add to database
+    new_company = Company(
+        location = data.get('location'),
+        name = data.get('name'),
+        rating = int(data.get('rating')),
+        user_id = user.user_id
+    )
+    db.session.add(new_company)
+    db.session.commit()
+    
+    return jsonify({"message": "Resume associated with job successfully"}), 200
+
+
+#------- Edit Company Data -------#
+@app.route('/company/<int:company_id>', methods=['PUT'])
+def edit_company(company_id):
+    # Retrieve updated job data
+    data = request.get_json()
+    
+    # Retrieve edited job and ensure it exits
+    company = Company.query.get(company_id)
+    if not company:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Update information
+    company.location = data.get('location', company.location)
+    company.rating = data.get('rating', company.rating)
+    company.name = data.get('name', company.name)
+    
+
+    db.session.commit()
+    return jsonify({"message": "Company edited successfully"}), 200
+
 
 '''
 ----------------------
@@ -503,13 +561,20 @@ def get_jobs(username):
     return jsonify(job_list), 200
 
 
-@app.route('/users/<int:user_id>/companies', methods=['GET'])
-def user_companies(user_id):
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+@app.route('/users/<string:username>/companies', methods=['GET'])
+def user_companies(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    companies = Company.query.filter_by(user_id=user.user_id).all()
 
-    query = db.session.query(Company).join(Job).filter(Job.job_id.in_(user_job_ids))
-
-    companies = query.distinct().all()
+    return jsonify([{
+        "name" : c.name,
+        "location": c.location,
+        "rating": c.rating,
+        "id": c.company_id
+        } for c in companies]), 200
 
 @app.route('/user/<int:user_id>/companies/filter', methods=['GET'])
 def filter_user_companies(user_id):
