@@ -10,6 +10,9 @@ const Companies = ({ username }) => {
   const [filterType, setFilterType] = useState("none");
   const [minSalary, setMinSalary] = useState(0);
   const [maxSalary, setMaxSalary] = useState(0);
+  const [jobTitle, setJobTitle] = useState("");
+  const [skills, setSkills] = useState("");
+  const [sortBy, setSortBy] = useState("none");
 
   const fetchJobs = async () => {
     try {
@@ -22,6 +25,22 @@ const Companies = ({ username }) => {
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/users/${username}/companies`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setRCompanies(data);
+      } else {
+        console.error("Failed to fetch companies");
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
     }
   };
 
@@ -44,7 +63,11 @@ const Companies = ({ username }) => {
       });
 
       if (response.ok) {
-        fetchJobs();
+        if (filterType === "none") {
+          fetchJobs();
+        } else {
+          fetchFilteredJobs();
+        }
       }
     } catch (error) {
       console.error("Error adding job:", error);
@@ -69,24 +92,18 @@ const Companies = ({ username }) => {
         setCompanies((prev) =>
           prev.map((comp) => (comp.id === data.id ? data : comp))
         );
+
+        if (filterType === "none") {
+          fetchJobs();
+        } else {
+          fetchFilteredJobs();
+        }
       } else {
         console.error("Failed to update job");
       }
     } catch (error) {
       console.error("Error updating job:", error);
     }
-  };
-
-  const handleUpdateCompany = (jobId, companyName) => {
-    fetchJobs();
-  };
-
-  const handleUpdateResume = (jobId, resumeId) => {
-    setCompanies((prev) =>
-      prev.map((comp) =>
-        comp.id === jobId ? { ...comp, selectedResume: resumeId } : comp
-      )
-    );
   };
 
   const handleRemove = async (idToRemove) => {
@@ -106,75 +123,48 @@ const Companies = ({ username }) => {
     }
   };
 
-  const fetchCompanies = async () => {
+  const fetchFilteredJobs = async () => {
+    const formData = {
+      company: filterType === "company" ? selectedCompany : undefined,
+      minSalary: filterType === "salary" ? minSalary : undefined,
+      maxSalary: filterType === "salary" ? maxSalary : undefined,
+      title: jobTitle || undefined,
+      skills: skills || undefined,
+      sort_by: sortBy !== "none" ? sortBy : undefined,
+    };
+
     try {
       const response = await fetch(
-        `http://127.0.0.1:80/users/${username}/companies`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setRCompanies(data);
-      } else {
-        console.error("Failed to fetch companies");
-      }
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-    }
-  };
-
-  const fetchFilteredJobs = async () => {
-    var formData = {};
-
-    if (filterType === "company") {
-      formData = {
-        company: selectedCompany
-      }
-    }
-    else if (filterType == "salary") {
-      formData = {
-        minSalary: minSalary,
-        maxSalary: maxSalary
-      }
-    }
-
-    console.log(formData)
-
-      try {
-        const response = await fetch(`http://127.0.0.1:80/user/${username}/jobs/filter`, {
+        `http://127.0.0.1:80/user/${username}/jobs/filter`,
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
-        } else {
-          console.error("Failed to fetch jobs");
         }
-      } catch (error) {
-        console.error("Error fetching jobs:", error);
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data.jobs);
+      } else {
+        console.error("Failed to fetch jobs");
       }
-  };
-
-  const handleFilterChange = () => {
-    if (filterType === "none") {
-      fetchJobs();
-      return;
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
     }
-
-    fetchFilteredJobs();
   };
 
   useEffect(() => {
-    //if (username) fetchJobs();
-    if (selectedCompany) handleFilterChange();
-    if (username) fetchCompanies();
-    if (filterType) handleFilterChange();
-    if (minSalary) handleFilterChange();
-    if (maxSalary) handleFilterChange();
-  }, [username, selectedCompany, filterType, minSalary, maxSalary]);
+    if (username) {
+      fetchJobs();
+      fetchCompanies();
+    }
+
+    if (filterType || selectedCompany || maxSalary || minSalary || jobTitle || skills) {
+      fetchFilteredJobs();
+    }
+  }, [username, filterType, selectedCompany, maxSalary, minSalary, jobTitle, skills]);
 
   return (
     <div className={styles.container}>
@@ -186,17 +176,13 @@ const Companies = ({ username }) => {
         <select
           className={styles.filterDropdown}
           value={filterType}
-          onChange={(e) => {
-            e.stopPropagation();
-            setFilterType(e.target.value)
-          }}
+          onChange={(e) => setFilterType(e.target.value)}
         >
-          <option value="" disabled>
-            Filter by
-          </option>
           <option value="none">None</option>
           <option value="company">Company</option>
           <option value="salary">Salary Range</option>
+          <option value="title">Job Title</option>
+          <option value="skills">Skills</option>
         </select>
 
         {filterType === "company" && (
@@ -217,25 +203,41 @@ const Companies = ({ username }) => {
         )}
 
         {filterType === "salary" && (
-          <div className={styles.salaryInputContainer}>
-            <label>Min Salary:</label>
+          <div>
             <input
               type="number"
-              placeholder="Min"
-              className={styles.salaryInput}
+              placeholder="Min Salary"
               value={minSalary}
               onChange={(e) => setMinSalary(e.target.value)}
             />
-            <label>Max Salary:</label>
             <input
               type="number"
-              placeholder="Max"
-              className={styles.salaryInput}
+              placeholder="Max Salary"
               value={maxSalary}
               onChange={(e) => setMaxSalary(e.target.value)}
             />
           </div>
         )}
+
+        {filterType === "title" && (
+          <input
+            type="text"
+            placeholder="Job Title"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+          />
+        )}
+
+        {filterType === "skills" && (
+          <input
+            type="text"
+            placeholder="Skills"
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+          />
+        )}
+
+        <button onClick={fetchFilteredJobs}>Apply Filters</button>
       </div>
 
       <div className={styles.cardsContainer}>
@@ -245,8 +247,6 @@ const Companies = ({ username }) => {
             username={username}
             {...company}
             onUpdate={handleUpdate}
-            onUpdateResume={handleUpdateResume}
-            onUpdateCompany={handleUpdateCompany}
             onRemove={() => handleRemove(company.id)}
           />
         ))}

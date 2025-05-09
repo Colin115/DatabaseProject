@@ -544,31 +544,34 @@ def get_all_companies():
     } for c in companies])
 
 
-
-#----- User Job Filtering -----#
 @app.route('/user/<string:username>/jobs/filter', methods=['POST'])
 def filter_user_jobs(username):
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-
-    # Query parameters
-    data=request.get_json()
+    
+    data = request.get_json()
+    
+    # Extracting filter parameters
     company_name = data.get('company')
     min_salary = data.get('minSalary')
     max_salary = data.get('maxSalary')
+    job_title = data.get('title')
+    skills = data.get('skills')
+    sort_by = data.get('sort_by')
 
-    print(company_name, min_salary, max_salary)
-    # Build the query directly
+    print(company_name, min_salary, max_salary, job_title, skills)
+
+    # Fetching filtered jobs with company and resume details
     query = (
-        db.session.query(Job, Resume, Company)
+        db.session.query(Job, Company, Resume)
+        .outerjoin(Company, Job.company_id == Company.company_id)
         .outerjoin(HandedTo, Job.job_id == HandedTo.job_id)
         .outerjoin(Resume, HandedTo.resume_id == Resume.id)
-        .outerjoin(Company, Job.company_id == Company.company_id)  # Assuming Job has a foreign key company_id
         .filter(Job.user_id == user.user_id)
     )
 
-    # Apply filters if present
+    # Applying filters dynamically
     if company_name:
         query = query.filter(Company.name.ilike(f"%{company_name}%"))
 
@@ -578,10 +581,28 @@ def filter_user_jobs(username):
     if max_salary is not None:
         query = query.filter(Job.salary <= max_salary)
 
-    # Execute the query
+    if job_title:
+        query = query.filter(Job.title.ilike(f"%{job_title}%"))
+
+    if skills:
+        query = query.filter(Job.skills.ilike(f"%{skills}%"))
+
+    # Sorting by salary (optional)
+    if sort_by == 'salary_asc':
+        query = query.order_by(Job.salary.asc())
+    elif sort_by == 'salary_desc':
+        query = query.order_by(Job.salary.desc())
+
+    # Aggregation Data based on filtered query
+    total_jobs = query.count()
+    avg_salary = db.session.query(db.func.avg(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+    max_salary_value = db.session.query(db.func.max(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+    min_salary_value = db.session.query(db.func.min(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+
+    # Fetching filtered jobs
     jobs = query.all()
 
-    # Create job list for response
+    # Formatting the job list
     job_list = [
         {
             "id": job.job_id,
@@ -598,10 +619,17 @@ def filter_user_jobs(username):
                 "user_id": resume.user_id
             } if resume else None
         }
-        for job, resume, company in jobs
+        for job, company, resume in jobs
     ]
 
-    return jsonify(job_list), 200
+    # Returning the filtered jobs with aggregation data
+    return jsonify({
+        "total_jobs": total_jobs,
+        "average_salary": avg_salary,
+        "highest_salary": max_salary_value,
+        "lowest_salary": min_salary_value,
+        "jobs": job_list
+    }), 200
 
 
 #------- Get Jobs and Associated Resume -------#
