@@ -34,6 +34,22 @@ export default function CompanyCard({
     selectedCompany,
   });
 
+  const progressOptions = [
+    "Just Applied",
+    "Interviewing - First Stage",
+    "Interviewing - Final Stage",
+    "Offer Received",
+    "Hired",
+  ];
+
+  const educationOptions = [
+    "High School Diploma",
+    "Associate's Degree",
+    "Bachelor's Degree",
+    "Master's Degree",
+    "Doctorate",
+  ];
+
   useEffect(() => {
     const fetchUserResumes = async () => {
       try {
@@ -116,9 +132,6 @@ export default function CompanyCard({
         return;
       }
 
-      // Update local state
-
-      // Notify parent to directly update resume in the list
       onUpdateResume(id, resumeId);
     } catch (error) {
       console.error("Error associating resume:", error);
@@ -139,15 +152,47 @@ export default function CompanyCard({
           <p>
             <strong>Salary:</strong> {salary}
           </p>
-          <p>
-            <strong>Progress:</strong> {progress}
-          </p>
+          <label>
+            <strong>Progress:</strong>
+            <select
+              name="progress"
+              value={editData.progress || ""}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleChange(e);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={styles.progressDropdown}
+            >
+              {progressOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
           <p>
             <strong>Skills:</strong> {skills}
           </p>
-          <p>
-            <strong>Requirements:</strong> {requirements}
-          </p>
+          <label>
+            <strong>Education Required:</strong>
+            <select
+              name="requirements"
+              value={editData.requirements || ""}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleChange(e);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={styles.educationDropdown}
+            >
+              {educationOptions.map((option, index) => (
+                <option key={index} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             <strong>Resume Used:</strong>
             <select
@@ -155,7 +200,7 @@ export default function CompanyCard({
               value={editData.selectedResume ? editData.selectedResume.id : ""}
               onChange={(e) => {
                 e.stopPropagation();
-                handleResumeChange(e.target.value); // Pass the resume ID directly
+                handleResumeChange(e.target.value);
               }}
               onClick={(e) => e.stopPropagation()}
               className={styles.resumeDropdown}
@@ -177,7 +222,7 @@ export default function CompanyCard({
               value={editData.selectedCompany || ""}
               onChange={(e) => {
                 e.stopPropagation();
-                handleCompanyChange(e.target.value); // Pass the resume ID directly
+                handleCompanyChange(e.target.value);
               }}
               onClick={(e) => e.stopPropagation()}
               className={styles.companyDropdown}
