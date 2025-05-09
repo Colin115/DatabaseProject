@@ -36,6 +36,10 @@
     background-color: white !important;
 }
 
+.popupContent input::placeholder {
+    opacity: .5;
+}
+
 .popupContent input::placeholder,
 .popupContent select {
     color: var(--text-color-opp);

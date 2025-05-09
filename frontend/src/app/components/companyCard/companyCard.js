@@ -114,7 +114,7 @@ useEffect(() => {
 
       if (response.ok) {
         const data = await response.json();
-        onUpdateCompany(id, company);
+        //onUpdateCompany(id, company);
       } else {
         console.error("Failed to update job");
       }
@@ -141,7 +141,7 @@ useEffect(() => {
         return;
       }
 
-      onUpdateResume(id, resumeId);
+      //onUpdateResume(id, resumeId);
     } catch (error) {
       console.error("Error associating resume:", error);
     }
