@@ -628,7 +628,7 @@ def user_companies(username):
         "id": c.company_id
         } for c in companies]), 200
 
-@app.route('/user/<int:user_id>/companies/filter', methods=['GET'])
+@app.route('/user/<str:username>/companies/filter', methods=['GET'])
 def filter_user_companies(user_id):
     # Get filters from query params
     name = request.args.get('name', default='', type=str)
@@ -664,6 +664,48 @@ def filter_user_companies(user_id):
         'rating': c.rating
     } for c in companies])
 
+#------ Detailed Company Data ------- #
+@app.route('/user/<str:username>/company/<int:company_id>', methods=['GET'])
+def get_user_company_details(user_id, company_id):
+    company = Company.query.get(company_id)
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
+    #Get job IDs the user is interested in
+    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    #Get all jobs at this company that the user is interested in
+    jobs = db.session.query(Job).filter(Job.company_id == company_id).filter(Job.job_id.in_(user_job_ids)).all()
+
+    if not jobs:
+        return jsonify({"error": "User has no jobs in this company"}), 404
+
+    #Collect position titles and salary data
+    position_counts = {}
+    for job in jobs:
+        if job.title:
+            if job.title in position_counts:
+                position_counts[job.title] += 1
+            else:
+                position_counts[job.title] = 1
+
+    salaries = [job.salary for job in jobs if job.salary is not None]
+
+    salary_range = {
+        "min": min(salaries),
+        "max": max(salaries)
+    } if salaries else None
+
+    # 5. Return company and job summary
+    return jsonify({
+        "company_id": company.company_id,
+        "name": company.name,
+        "location": company.location,
+        "rating": company.rating,
+        "jobs_count": len(jobs),
+        "postion_count": len(job),
+        "salary_range": salary_range
+    }), 200
 
 #------- Get Associated Resume -------#
 @app.route('/jobs/<int:job_id>/associated_resumes', methods=['GET'])
