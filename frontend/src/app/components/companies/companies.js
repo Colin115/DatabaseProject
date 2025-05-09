@@ -5,7 +5,11 @@ import styles from "./Companies.module.css";
 
 const Companies = ({ username }) => {
   const [companies, setCompanies] = useState([]);
+  const [rcompanies, setRCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState();
   const [filterType, setFilterType] = useState("None");
+  const [minSalary, setMinSalary] = useState(0);
+  const [maxSalary, setMaxSalary] = useState(0);
   const [showAddJob, setShowAddJob] = useState(false);
 
   const fetchJobs = async () => {
@@ -103,38 +107,131 @@ const Companies = ({ username }) => {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:80/users/${username}/companies`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setRCompanies(data);
+      } else {
+        console.error("Failed to fetch companies");
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
+
+  const fetchFilteredJobs = async () => {
+    var formData = {};
+
+    if (filterType === "company") {
+      formData = {
+        company: selectedCompany
+      }
+    }
+    else if (filterType == "salary") {
+
+    }
+
+
+
+      try {
+        const response = await fetch(`http://127.0.0.1:80/user/${username}/jobs/filter`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCompanies(data);
+        } else {
+          console.error("Failed to fetch jobs");
+        }
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+      }
+  };
 
   const handleFilterChange = () => {
-    if (filterType === "None") {
+    if (filterType === "none") {
       fetchJobs();
       return;
     }
-    
-    
-  }
+
+    fetchFilteredJobs();
+  };
 
   useEffect(() => {
     if (username) fetchJobs();
-    if (filterType) handleFilterChange();
-  }, [username, filterType]);
+    if (selectedCompany) handleFilterChange();
+    if (username) fetchCompanies();
+  }, [username, selectedCompany]);
 
   return (
     <div className={styles.container}>
       <button onClick={handleAddJob} className={styles.addJobButton}>
         Add Job
       </button>
-       <select
-        onChange={(e) => setFilterType(e.target.value)}
-        className={styles.filterDropdown}
-        defaultValue=""
-      >
-        <option value="" disabled>
-          Filter by
-        </option>
-        <option value="none">None</option>
-        <option value="company">Company</option>
-        <option value="salary">Salary Range</option>
-      </select>
+
+      <div>
+        <select
+          className={styles.filterDropdown}
+          value={filterType}
+          onChange={(e) => {
+            e.stopPropagation();
+            setFilterType(e.target.value)
+          }}
+        >
+          <option value="" disabled>
+            Filter by
+          </option>
+          <option value="none">None</option>
+          <option value="company">Company</option>
+          <option value="salary">Salary Range</option>
+        </select>
+
+        {filterType === "company" && (
+          <select
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className={styles.companyDropdown}
+            value={selectedCompany}
+          >
+            <option value="" disabled>
+              Select Company
+            </option>
+            {rcompanies.map((company) => (
+              <option key={company.id} value={company.name}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {filterType === "salary" && (
+          <div className={styles.salaryInputContainer}>
+            <label>Min Salary:</label>
+            <input
+              type="number"
+              placeholder="Min"
+              className={styles.salaryInput}
+              value={minSalary}
+              onChange={(e) => setMinSalary(e.target.value)}
+            />
+            <label>Max Salary:</label>
+            <input
+              type="number"
+              placeholder="Max"
+              className={styles.salaryInput}
+              value={maxSalary}
+              onChange={(e) => setMaxSalary(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
 
       <div className={styles.cardsContainer}>
         {companies.map((company) => (

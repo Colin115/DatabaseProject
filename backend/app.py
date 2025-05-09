@@ -546,35 +546,64 @@ def get_all_companies():
 
 
 #----- User Job Filtering -----#
-@app.route('/user/<string:username>/jobs/filter/<string:filter>', methods=['GET'])
-def filter_user_jobs(user_id, filter):
+@app.route('/user/<string:username>/jobs/filter', methods=['POST'])
+def filter_user_jobs(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     # Query parameters
+    data=request.get_json()
+    company_name = data.get('company')
+    min_salary = data.get('min_salary')
+    max_salary = data.get('max_salary')
 
-    #Get job IDs the user is interested in
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id.id).subquery()
+    print(company_name, min_salary, max_salary)
+    # Build the query directly
+    query = (
+        db.session.query(Job, Resume, Company)
+        .outerjoin(HandedTo, Job.job_id == HandedTo.job_id)
+        .outerjoin(Resume, HandedTo.resume_id == Resume.id)
+        .outerjoin(Company, Job.company_id == Company.company_id)  # Assuming Job has a foreign key company_id
+        .filter(Job.user_id == user.user_id)
+    )
 
-    query = db.session.query(Job).filter(Job.job_id.in_(user_job_ids))
+    # Apply filters if present
+    if company_name:
+        query = query.filter(Company.name.ilike(f"%{company_name}%"))
 
-    # if company_name:
-    #     query = query.join(Company).filter(Company.name.ilike(f"%{company_name}%"))
-    
-    # if min_salary:
-    #     query = query.filter(Job.salary >= min_salary)
+    if min_salary is not None:
+        query = query.filter(Job.salary >= min_salary)
 
-    # Step 4: Return the filtered jobs
+    if max_salary is not None:
+        query = query.filter(Job.salary <= max_salary)
+
+    # Execute the query
     jobs = query.all()
 
-    return jsonify([
+    # Create job list for response
+    job_list = [
         {
-            "job_id": job.job_id,
+            "id": job.job_id,
+            "salary": str(job.salary),
+            "requirements": job.requirements,
+            "skills": job.skills,
             "title": job.title,
             "progress": job.progress,
-            "salary": str(job.salary),
             "company_id": job.company_id,
-            "requirements": job.requirements,
-            "skills": job.skills
-        } for job in jobs
-    ])
+            "selectedCompany": company.name if company else None,
+            "selectedResume": {
+                "id": resume.id,
+                "pdf_file": resume.pdf_file,
+                "user_id": resume.user_id
+            } if resume else None
+        }
+        for job, resume, company in jobs
+    ]
+
+    return jsonify(job_list), 200
+
+
 #------- Get Jobs and Associated Resume -------#
 @app.route('/jobs/<string:username>', methods=['GET'])
 def get_jobs(username):
