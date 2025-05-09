@@ -132,10 +132,13 @@ const Companies = ({ username }) => {
       }
     }
     else if (filterType == "salary") {
-
+      formData = {
+        minSalary: minSalary,
+        maxSalary: maxSalary
+      }
     }
 
-
+    console.log(formData)
 
       try {
         const response = await fetch(`http://127.0.0.1:80/user/${username}/jobs/filter`, {
@@ -169,7 +172,10 @@ const Companies = ({ username }) => {
     if (username) fetchJobs();
     if (selectedCompany) handleFilterChange();
     if (username) fetchCompanies();
-  }, [username, selectedCompany]);
+    if (filterType) handleFilterChange();
+    if (minSalary) handleFilterChange();
+    if (maxSalary) handleFilterChange();
+  }, [username, selectedCompany, filterType, minSalary, maxSalary]);
 
   return (
     <div className={styles.container}>

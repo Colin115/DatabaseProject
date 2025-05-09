@@ -555,8 +555,8 @@ def filter_user_jobs(username):
     # Query parameters
     data=request.get_json()
     company_name = data.get('company')
-    min_salary = data.get('min_salary')
-    max_salary = data.get('max_salary')
+    min_salary = data.get('minSalary')
+    max_salary = data.get('maxSalary')
 
     print(company_name, min_salary, max_salary)
     # Build the query directly
