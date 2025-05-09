@@ -63,6 +63,7 @@ class Company(db.Model):
     company_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True)
     location = db.Column(db.String(255), nullable=False)
+    rating = db.Column(db.Float(10), nullable = True)
 
     jobs = db.relationship('Job', backref='company', lazy=True)
 class HandedTo(db.Model):
@@ -287,6 +288,68 @@ def update_resume_name(resume_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+#------- Add Company -------#
+@app.route('/companies/<string:username>', methods=['POST'])
+def add_company(username):
+    data = request.get_json()
+
+    existing_company = Company.query.filter(db.func.lower(Company.name) == data.get('name').lower()).first()
+
+    if existing_company:
+        return jsonify({"error": "A company with this name already exists"}), 409
+    
+    # Create the company
+    new_company = Company(
+        name=data.get('name'),
+        location=data.get('location'),
+        rating=data.get('rating')
+    )
+
+    db.session.add(new_company)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Company added successfully",
+        "company_id": new_company.company_id
+    }), 201
+
+#------- Edit Company -------#
+@app.route('/companies/<int:company_id>', methods=['PUT'])
+def edit_company(company_id):
+    data = request.get_json()
+
+    company = Company.query.get(company_id)
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
+    if 'name' in data:
+        company.name = data['name']
+    if 'location' in data:
+        company.location = data['location']
+    if 'rating' in data:
+        company.rating = data['rating']
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Company updated",
+        "company_id": company.company_id,
+        "name": company.name,
+        "location": company.location,
+        "rating": company.rating
+    }), 200
+
+#------- Delete Company -------#
+@app.route('/companies/<int:company_id>', methods=['DELETE'])
+def delete_company(company_id):
+    company = Company.query.get(company_id)
+    if not company:
+        return jsonify({"error": "Company not found"}), 404
+
+    db.session.delete(company)
+    db.session.commit()
+
+    return jsonify({"message": "Company deleted successfully"}), 200
 
 #------- Add Job -------#
 @app.route('/jobs/<string:username>', methods=['POST'])
@@ -467,6 +530,53 @@ def get_all_companies():
         'location': c.location
     } for c in companies])
 
+#------ User Companies -------#
+
+
+@app.route('/users/<string:username>/companies', methods=['GET'])
+def user_companies(user_id):
+    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    query = db.session.query(Company).join(Job).filter(Job.job_id.in_(user_job_ids))
+
+    companies = query.distinct().all()
+
+#----- User Company Filtering -----#
+@app.route('/user/<string:username>/companies/filter', methods=['GET'])
+def filter_user_companies(user_id):
+    name = request.args.get('name', default='', type=str)
+    location = request.args.get('location', default='', type=str)
+    rating = request.args.get('rating', type=float)
+    sort = request.args.get('sort', default='', type=str).lower()  # e.g., 'asc' or 'desc'
+
+    #all job_ids the user is interested in
+    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    #companies linked to those jobs
+    query = db.session.query(Company).join(Job, Company.company_id == Job.company_id).filter(Job.job_id.in_(user_job_ids))
+
+    # Apply optional filters
+    if name:
+        query = query.filter(Company.name.ilike(f"%{name}%"))
+    if location:
+        query = query.filter(Company.location.ilike(f"%{location}%"))
+    if rating is not None:
+        query = query.filter(Company.rating >= rating)
+    if sort == 'asc':
+        query = query.order_by(Company.name.asc())
+    elif sort == 'desc':
+        query = query.order_by(Company.name.desc())
+
+    # Get unique companies
+    companies = query.distinct().all()
+
+    return jsonify([{
+        'company_id': c.company_id,
+        'name': c.name,
+        'location': c.location,
+        'rating': c.rating
+    } for c in companies])
+
 #------- Get Jobs and Associated Resume -------#
 @app.route('/jobs/<string:username>', methods=['GET'])
 def get_jobs(username):
@@ -503,49 +613,6 @@ def get_jobs(username):
     return jsonify(job_list), 200
 
 
-@app.route('/users/<int:user_id>/companies', methods=['GET'])
-def user_companies(user_id):
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
-
-    query = db.session.query(Company).join(Job).filter(Job.job_id.in_(user_job_ids))
-
-    companies = query.distinct().all()
-
-@app.route('/user/<int:user_id>/companies/filter', methods=['GET'])
-def filter_user_companies(user_id):
-    # Get filters from query params
-    name = request.args.get('name', default='', type=str)
-    location = request.args.get('location', default='', type=str)
-    rating = request.args.get('rating', type=float)
-    sort = request.args.get('sort', default='', type=str).lower()  # e.g., 'asc' or 'desc'
-
-    #all job_ids the user is interested in
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
-
-    #companies linked to those jobs
-    query = db.session.query(Company).join(Job, Company.company_id == Job.company_id).filter(Job.job_id.in_(user_job_ids))
-
-    # Apply optional filters
-    if name:
-        query = query.filter(Company.name.ilike(f"%{name}%"))
-    if location:
-        query = query.filter(Company.location.ilike(f"%{location}%"))
-    if rating is not None:
-        query = query.filter(Company.rating >= rating)
-    if sort == 'asc':
-        query = query.order_by(Company.name.asc())
-    elif sort == 'desc':
-        query = query.order_by(Company.name.desc())
-
-    # Get unique companies
-    companies = query.distinct().all()
-
-    return jsonify([{
-        'company_id': c.company_id,
-        'name': c.name,
-        'location': c.location,
-        'rating': c.rating
-    } for c in companies])
 
 
 #------- Get Associated Resume -------#
