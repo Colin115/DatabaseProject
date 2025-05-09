@@ -161,10 +161,27 @@ const Companies = ({ username }) => {
       fetchCompanies();
     }
 
-    if (filterType || selectedCompany || maxSalary || minSalary || jobTitle || skills) {
+    if (
+      filterType ||
+      selectedCompany ||
+      maxSalary ||
+      minSalary ||
+      jobTitle ||
+      skills ||
+      sortBy
+    ) {
       fetchFilteredJobs();
     }
-  }, [username, filterType, selectedCompany, maxSalary, minSalary, jobTitle, skills]);
+  }, [
+    username,
+    filterType,
+    selectedCompany,
+    maxSalary,
+    minSalary,
+    jobTitle,
+    skills,
+    sortBy
+  ]);
 
   return (
     <div className={styles.container}>
@@ -173,6 +190,12 @@ const Companies = ({ username }) => {
       </button>
 
       <div>
+        <select onChange={(e) => setSortBy(e.target.value)}>
+          <option value="">Sort by</option>
+          <option value="salary_asc">Salary Ascending</option>
+          <option value="salary_desc">Salary Descending</option>
+        </select>
+
         <select
           className={styles.filterDropdown}
           value={filterType}
@@ -184,6 +207,13 @@ const Companies = ({ username }) => {
           <option value="title">Job Title</option>
           <option value="skills">Skills</option>
         </select>
+
+        {/*<div className={styles.aggregation}>
+          <p>Total Jobs: {aggregation.total || 0}</p>
+          <p>Average Salary: ${aggregation.avgSalary?.toFixed(2) || 0}</p>
+          <p>Highest Salary: ${aggregation.maxSalary || 0}</p>
+          <p>Lowest Salary: ${aggregation.minSalary || 0}</p>
+        </div>*/}
 
         {filterType === "company" && (
           <select
