@@ -202,90 +202,100 @@ const Companies = ({ username }) => {
 
   return (
     <div className={styles.container}>
+      <div className={styles.jobHeader}>
+        <div>
+          <label>Sort By</label>
+          <select onChange={(e) => setSortBy(e.target.value)}>
+            <option value="">None</option>
+            <option value="salary_asc">Salary Ascending</option>
+            <option value="salary_desc">Salary Descending</option>
+          </select>
+        </div>
+        <div>
+          <label>Filter</label>
+          <select
+            className={styles.filterDropdown}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="none">None</option>
+            <option value="company">Company</option>
+            <option value="salary">Salary Range</option>
+            <option value="title">Job Title</option>
+            <option value="skills">Skills</option>
+          </select>
+
+          {filterType === "company" && (
+            <select
+              onChange={(e) => setSelectedCompany(e.target.value)}
+              className={styles.companyDropdown}
+              value={selectedCompany}
+            >
+              <option value="" disabled>
+                Select Company
+              </option>
+              {rcompanies.map((company) => (
+                <option key={company.id} value={company.name}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {filterType === "salary" && (
+            <div>
+              <input
+                type="number"
+                placeholder="Min Salary"
+                value={minSalary}
+                onChange={(e) => setMinSalary(e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Max Salary"
+                value={maxSalary}
+                onChange={(e) => setMaxSalary(e.target.value)}
+              />
+            </div>
+          )}
+
+          {filterType === "title" && (
+            <input
+              type="text"
+              placeholder="Job Title"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+            />
+          )}
+
+          {filterType === "skills" && (
+            <input
+              type="text"
+              placeholder="Skills"
+              value={skills}
+              onChange={(e) => setSkills(e.target.value)}
+            />
+          )}
+        </div>
+        <div>
+          {aggregation && (
+            <div className={styles.aggregation}>
+              <p>Total Jobs: {aggregation.total || 0}</p>
+              <p>
+                Average Salary:{" "}
+                {aggregation.avgSalary ? aggregation.average_salary : 0}
+              </p>
+              <p>Highest Salary: {aggregation.maxSalary || 0}</p>
+              <p>Lowest Salary: {aggregation.minSalary || 0}</p>
+            </div>
+          )}
+        </div>
+      </div>
       <button onClick={handleAddJob} className={styles.addJobButton}>
         Add Job
       </button>
 
       <div>
-        <select onChange={(e) => setSortBy(e.target.value)}>
-          <option value="">Sort by</option>
-          <option value="salary_asc">Salary Ascending</option>
-          <option value="salary_desc">Salary Descending</option>
-        </select>
-
-        <select
-          className={styles.filterDropdown}
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <option value="none">None</option>
-          <option value="company">Company</option>
-          <option value="salary">Salary Range</option>
-          <option value="title">Job Title</option>
-          <option value="skills">Skills</option>
-        </select>
-
-        {aggregation && (
-          <div className={styles.aggregation}>
-            <p>Total Jobs: {aggregation.total || 0}</p>
-            <p>Average Salary: {aggregation.avgSalary ? aggregation.average_salary : 0}</p>
-            <p>Highest Salary: {aggregation.maxSalary || 0}</p>
-            <p>Lowest Salary: {aggregation.minSalary || 0}</p>
-          </div>
-        )}
-
-        {filterType === "company" && (
-          <select
-            onChange={(e) => setSelectedCompany(e.target.value)}
-            className={styles.companyDropdown}
-            value={selectedCompany}
-          >
-            <option value="" disabled>
-              Select Company
-            </option>
-            {rcompanies.map((company) => (
-              <option key={company.id} value={company.name}>
-                {company.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {filterType === "salary" && (
-          <div>
-            <input
-              type="number"
-              placeholder="Min Salary"
-              value={minSalary}
-              onChange={(e) => setMinSalary(e.target.value)}
-            />
-            <input
-              type="number"
-              placeholder="Max Salary"
-              value={maxSalary}
-              onChange={(e) => setMaxSalary(e.target.value)}
-            />
-          </div>
-        )}
-
-        {filterType === "title" && (
-          <input
-            type="text"
-            placeholder="Job Title"
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-          />
-        )}
-
-        {filterType === "skills" && (
-          <input
-            type="text"
-            placeholder="Skills"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-          />
-        )}
-
         <button onClick={fetchFilteredJobs}>Apply Filters</button>
       </div>
 

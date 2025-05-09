@@ -89,7 +89,7 @@ useEffect(() => {
 
   fetchCompanies(); // Initial fetch
 
-  const interval = setInterval(fetchCompanies, 5000); // Repeat every 5 seconds
+  const interval = setInterval(fetchCompanies, 10000); // Repeat every 10 seconds
 
   return () => clearInterval(interval); // Cleanup
 }, [username]);
