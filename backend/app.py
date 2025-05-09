@@ -288,56 +288,8 @@ def update_resume_name(resume_id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-#------- Add Company -------#
-@app.route('/companies/<string:username>', methods=['POST'])
-def add_company(username):
-    data = request.get_json()
 
-    existing_company = Company.query.filter(db.func.lower(Company.name) == data.get('name').lower()).first()
 
-    if existing_company:
-        return jsonify({"error": "A company with this name already exists"}), 409
-    
-    # Create the company
-    new_company = Company(
-        name=data.get('name'),
-        location=data.get('location'),
-        rating=data.get('rating')
-    )
-
-    db.session.add(new_company)
-    db.session.commit()
-
-    return jsonify({
-        "message": "Company added successfully",
-        "company_id": new_company.company_id
-    }), 201
-
-#------- Edit Company -------#
-@app.route('/companies/<int:company_id>', methods=['PUT'])
-def edit_company(company_id):
-    data = request.get_json()
-
-    company = Company.query.get(company_id)
-    if not company:
-        return jsonify({"error": "Company not found"}), 404
-
-    if 'name' in data:
-        company.name = data['name']
-    if 'location' in data:
-        company.location = data['location']
-    if 'rating' in data:
-        company.rating = data['rating']
-
-    db.session.commit()
-
-    return jsonify({
-        "message": "Company updated",
-        "company_id": company.company_id,
-        "name": company.name,
-        "location": company.location,
-        "rating": company.rating
-    }), 200
 
 #------- Delete Company -------#
 @app.route('/companies/<int:company_id>', methods=['DELETE'])
@@ -380,32 +332,36 @@ def add_job(username):
 #------- Edit Job Data -------#
 @app.route('/jobs/<int:job_id>', methods=['PUT'])
 def edit_job(job_id):
-    # Retrieve updated job data
     data = request.get_json()
-    
-    # Retrieve edited job and ensure it exits
     job = Job.query.get(job_id)
     if not job:
-        return jsonify({"error": "Job not found"}), 404
+        return {'message': 'Job not found'}, 404
 
-    # Update information
+    print(data.get("selectedCompany"))
+    company = Company.query.filter_by(name=data.get("selectedCompany")).first()
+    if company:
+        print(1)
+        job.company_id = company.company_id  # Update company association
+
+    # Update job details
     job.salary = data.get('salary', job.salary)
     job.requirements = data.get('requirements', job.requirements)
     job.skills = data.get('skills', job.skills)
     job.title = data.get('title', job.title)
     job.progress = data.get('progress', job.progress)
-    job.company_id = data.get('company_id', job.company_id)
+
+    
 
     db.session.commit()
-    return jsonify({
-        "id": job.job_id,
-        "salary": str(job.salary),
-        "requirements": job.requirements,
-        "skills": job.skills,
-        "title": job.title,
-        "progress": job.progress,
-        "company_id": job.company_id
-    }), 200
+    return {
+        'job_id': job.job_id,
+        'salary': float(job.salary),
+        'company_id': job.company_id,
+        'requirements': job.requirements,
+        'skills': job.skills,
+        'title': job.title,
+        'progress': job.progress
+    }, 200
 
 #------- Delete Job -------#
 @app.route('/jobs/<int:job_id>', methods=['DELETE'])
@@ -587,52 +543,7 @@ def get_all_companies():
         'location': c.location
     } for c in companies])
 
-#------ User Companies -------#
 
-
-@app.route('/users/<string:username>/companies', methods=['GET'])
-def user_companies(user_id):
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
-
-    query = db.session.query(Company).join(Job).filter(Job.job_id.in_(user_job_ids))
-
-    companies = query.distinct().all()
-
-#----- User Company Filtering -----#
-@app.route('/user/<string:username>/companies/filter', methods=['GET'])
-def filter_user_companies(user_id):
-    name = request.args.get('name', default='', type=str)
-    location = request.args.get('location', default='', type=str)
-    rating = request.args.get('rating', type=float)
-    sort = request.args.get('sort', default='', type=str).lower()  # e.g., 'asc' or 'desc'
-
-    #all job_ids the user is interested in
-    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
-
-    #companies linked to those jobs
-    query = db.session.query(Company).join(Job, Company.company_id == Job.company_id).filter(Job.job_id.in_(user_job_ids))
-
-    # Apply optional filters
-    if name:
-        query = query.filter(Company.name.ilike(f"%{name}%"))
-    if location:
-        query = query.filter(Company.location.ilike(f"%{location}%"))
-    if rating is not None:
-        query = query.filter(Company.rating >= rating)
-    if sort == 'asc':
-        query = query.order_by(Company.name.asc())
-    elif sort == 'desc':
-        query = query.order_by(Company.name.desc())
-
-    # Get unique companies
-    companies = query.distinct().all()
-
-    return jsonify([{
-        'company_id': c.company_id,
-        'name': c.name,
-        'location': c.location,
-        'rating': c.rating
-    } for c in companies])
 
 #----- User Job Filtering -----#
 @app.route('/user/<string:username>/jobs/filter', methods=['GET'])
@@ -683,13 +594,14 @@ def get_jobs(username):
         return jsonify({"error": "User not found"}), 404
 
     jobs = (
-        db.session.query(Job, Resume)
+        db.session.query(Job, Resume, Company)
         .outerjoin(HandedTo, Job.job_id == HandedTo.job_id)
         .outerjoin(Resume, HandedTo.resume_id == Resume.id)
-        .filter(Job.user_id == user.user_id)
+        .outerjoin(Company, Job.company_id == Company.company_id)  # Assuming Job has a foreign key company_id
         .all()
     )
 
+ 
     job_list = [
         {
             "id": job.job_id,
@@ -699,13 +611,14 @@ def get_jobs(username):
             "title": job.title,
             "progress": job.progress,
             "company_id": job.company_id,
+            "selectedCompany": company.name if company else None,
             "selectedResume": {
                 "id": resume.id,
                 "pdf_file": resume.pdf_file,
                 "user_id": resume.user_id
             } if resume else None
         }
-        for job, resume in jobs
+        for job, resume, company in jobs
     ]
 
     return jsonify(job_list), 200

@@ -73,6 +73,14 @@ const Companies = ({ username }) => {
     }
   };
 
+  const handleUpdateCompany = (jobId, companyName) => {
+    setCompanies((prev) =>
+      prev.map((comp) =>
+        comp.id === jobId ? { ...comp, selectedCompany: companyName } : comp
+      )
+    );
+  };
+
   const handleUpdateResume = (jobId, resumeId) => {
     setCompanies((prev) =>
       prev.map((comp) =>
@@ -88,7 +96,7 @@ const Companies = ({ username }) => {
       });
 
       if (response.ok) {
-        setCompanies((prev) => prev.filter((comp) => comp.id !== idToRemove));
+        fetchJobs();
         console.log("Job deleted successfully");
       } else {
         console.error("Failed to delete job");
@@ -113,9 +121,9 @@ const Companies = ({ username }) => {
             key={company.id}
             username={username}
             {...company}
-            selectedCompany={selectedCompany}
             onUpdate={handleUpdate}
             onUpdateResume={handleUpdateResume}
+            onUpdateCompany={handleUpdateCompany}
             onRemove={() => handleRemove(company.id)}
           />
         ))}

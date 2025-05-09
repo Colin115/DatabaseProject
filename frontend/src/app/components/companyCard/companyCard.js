@@ -13,12 +13,15 @@ export default function CompanyCard({
   skills,
   requirements,
   selectedResume,
+  selectedCompany,
   onUpdate,
   onUpdateResume,
+  onUpdateCompany,
   onRemove,
 }) {
   const [popupOpen, setPopupOpen] = useState(false);
   const [resumes, setResumes] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [editData, setEditData] = useState({
     id,
     jobName,
@@ -52,7 +55,7 @@ export default function CompanyCard({
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:80/companies");
+        const response = await fetch(`http://127.0.0.1:80/users/${username}/companies`);
         if (response.ok) {
           const data = await response.json();
           setCompanies(data);
@@ -70,6 +73,29 @@ export default function CompanyCard({
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCompanyChange = async (company) => {
+    setEditData((prev) => ({ ...prev, selectedCompany: company }));
+
+    try {
+      const response = await fetch(`http://127.0.0.1:80/jobs/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ selectedCompany: company }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdateCompany(id, company);
+      } else {
+        console.error("Failed to update job");
+      }
+    } catch (error) {
+      console.error("Error updating job:", error);
+    }
   };
 
   const handleResumeChange = async (resumeId) => {
@@ -151,7 +177,7 @@ export default function CompanyCard({
               value={editData.selectedCompany || ""}
               onChange={(e) => {
                 e.stopPropagation();
-                handleCompanyChange(e.target.value);
+                handleCompanyChange(e.target.value); // Pass the resume ID directly
               }}
               onClick={(e) => e.stopPropagation()}
               className={styles.companyDropdown}
@@ -160,7 +186,7 @@ export default function CompanyCard({
                 None
               </option>
               {companies.map((company) => (
-                <option key={company.company_id} value={company.company_id}>
+                <option key={company.company_id} value={company.company_name}>
                   {company.name}
                 </option>
               ))}
