@@ -50,41 +50,50 @@ export default function CompanyCard({
     "Doctorate",
   ];
 
-  useEffect(() => {
-    const fetchUserResumes = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:80/resumes/${username}`);
-        if (response.ok) {
-          const data = await response.json();
-          setResumes(data);
-        } else {
-          console.error("Failed to fetch resumes");
-        }
-      } catch (error) {
-        console.error("Error fetching resumes:", error);
+useEffect(() => {
+  const fetchUserResumes = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:80/resumes/${username}`);
+      if (response.ok) {
+        const data = await response.json();
+        setResumes(data);
+      } else {
+        console.error("Failed to fetch resumes");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching resumes:", error);
+    }
+  };
 
-    fetchUserResumes();
-  }, []);
+  fetchUserResumes(); // Initial fetch
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:80/users/${username}/companies`);
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
-        } else {
-          console.error("Failed to fetch companies");
-        }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
+  const interval = setInterval(fetchUserResumes, 5000); // Repeat every 5 seconds
+
+  return () => clearInterval(interval); // Cleanup
+}, [username]);
+
+useEffect(() => {
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:80/users/${username}/companies`);
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data);
+      } else {
+        console.error("Failed to fetch companies");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
 
-    fetchCompanies();
-  }, []);
+  fetchCompanies(); // Initial fetch
+
+  const interval = setInterval(fetchCompanies, 5000); // Repeat every 5 seconds
+
+  return () => clearInterval(interval); // Cleanup
+}, [username]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
