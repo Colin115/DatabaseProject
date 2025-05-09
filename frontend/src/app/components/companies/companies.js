@@ -281,10 +281,7 @@ const Companies = ({ username }) => {
           {aggregation && (
             <div className={styles.aggregation}>
               <p>Total Jobs: {aggregation.total || 0}</p>
-              <p>
-                Average Salary:{" "}
-                {aggregation.avgSalary ? aggregation.average_salary : 0}
-              </p>
+              <p>Average Salary: {Number(aggregation.avgSalary || 0).toFixed(2)}</p>
               <p>Highest Salary: {aggregation.maxSalary || 0}</p>
               <p>Lowest Salary: {aggregation.minSalary || 0}</p>
             </div>
