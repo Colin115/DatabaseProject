@@ -74,11 +74,7 @@ const Companies = ({ username }) => {
   };
 
   const handleUpdateCompany = (jobId, companyName) => {
-    setCompanies((prev) =>
-      prev.map((comp) =>
-        comp.id === jobId ? { ...comp, selectedCompany: companyName } : comp
-      )
-    );
+    fetchJobs();
   };
 
   const handleUpdateResume = (jobId, resumeId) => {
