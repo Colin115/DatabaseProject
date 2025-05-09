@@ -13,13 +13,20 @@ const Companies = ({ username }) => {
   const [jobTitle, setJobTitle] = useState("");
   const [skills, setSkills] = useState("");
   const [sortBy, setSortBy] = useState("none");
+  const [aggregation, setAggregation] = useState();
 
   const fetchJobs = async () => {
     try {
       const response = await fetch(`http://127.0.0.1:80/jobs/${username}`);
       if (response.ok) {
         const data = await response.json();
-        setCompanies(data);
+        setCompanies(data.jobs);
+        setAggregation({
+          total: data.total_jobs,
+          avgSalary: data.average_salary,
+          maxSalary: data.highest_salary,
+          minSalary: data.lowest_salary,
+        });
       } else {
         console.error("Failed to fetch jobs");
       }
@@ -113,7 +120,11 @@ const Companies = ({ username }) => {
       });
 
       if (response.ok) {
-        fetchJobs();
+        if (filterType === "none") {
+          fetchJobs();
+        } else {
+          fetchFilteredJobs();
+        }
         console.log("Job deleted successfully");
       } else {
         console.error("Failed to delete job");
@@ -147,6 +158,12 @@ const Companies = ({ username }) => {
       if (response.ok) {
         const data = await response.json();
         setCompanies(data.jobs);
+        setAggregation({
+          total: data.total_jobs,
+          avgSalary: data.average_salary,
+          maxSalary: data.highest_salary,
+          minSalary: data.lowest_salary,
+        });
       } else {
         console.error("Failed to fetch jobs");
       }
@@ -180,7 +197,7 @@ const Companies = ({ username }) => {
     minSalary,
     jobTitle,
     skills,
-    sortBy
+    sortBy,
   ]);
 
   return (
@@ -208,12 +225,14 @@ const Companies = ({ username }) => {
           <option value="skills">Skills</option>
         </select>
 
-        {/*<div className={styles.aggregation}>
-          <p>Total Jobs: {aggregation.total || 0}</p>
-          <p>Average Salary: ${aggregation.avgSalary?.toFixed(2) || 0}</p>
-          <p>Highest Salary: ${aggregation.maxSalary || 0}</p>
-          <p>Lowest Salary: ${aggregation.minSalary || 0}</p>
-        </div>*/}
+        {aggregation && (
+          <div className={styles.aggregation}>
+            <p>Total Jobs: {aggregation.total || 0}</p>
+            <p>Average Salary: {aggregation.avgSalary ? aggregation.average_salary : 0}</p>
+            <p>Highest Salary: {aggregation.maxSalary || 0}</p>
+            <p>Lowest Salary: {aggregation.minSalary || 0}</p>
+          </div>
+        )}
 
         {filterType === "company" && (
           <select

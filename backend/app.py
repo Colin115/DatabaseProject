@@ -646,6 +646,13 @@ def get_jobs(username):
         .outerjoin(Company, Job.company_id == Company.company_id)  # Assuming Job has a foreign key company_id
         .all()
     )
+    
+    # Aggregation Data based on filtered query
+    total_jobs = jobs.count()
+    avg_salary = db.session.query(db.func.avg(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+    max_salary_value = db.session.query(db.func.max(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+    min_salary_value = db.session.query(db.func.min(Job.salary)).filter(Job.user_id == user.user_id).scalar()
+
 
  
     job_list = [
@@ -667,7 +674,13 @@ def get_jobs(username):
         for job, resume, company in jobs
     ]
 
-    return jsonify(job_list), 200
+    return jsonify({
+        "total_jobs": total_jobs,
+        "average_salary": avg_salary,
+        "highest_salary": max_salary_value,
+        "lowest_salary": min_salary_value,
+        "jobs": job_list
+    }), 200
 
 
 @app.route('/users/<string:username>/companies', methods=['GET'])
