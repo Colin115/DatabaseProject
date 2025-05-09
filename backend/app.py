@@ -541,18 +541,56 @@ def get_interested_jobs(user_id):
         'user_id': j.user_id
     } for j in jobs])
 
-@app.route('/users/<int:user_id>/Companies', methods=['GET'])
-def user_Companies(user_id):
-    user_jobs = [t[0] for t in db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).all()]
-    
-    job_company = user_jobs.join(Company).filter(Job.company_id == Company.company_id)
+@app.route('/users/<int:user_id>/companies', methods=['GET'])
+def user_companies(user_id):
+    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    query = db.session.query(Company).join(Job).filter(Job.job_id.in_(user_job_ids))
+
+    companies = query.distinct().all()
 
     return jsonify([{
         'company_id': c.company_id,
         'name': c.name,
-        'location': c.location
-    } for c in job_company])
+        'location': c.location,
+        'rating': c.rating
+    } for c in companies])
 
+@app.route('/user/<int:user_id>/companies/filter', methods=['GET'])
+def filter_user_companies(user_id):
+    # Get filters from query params
+    name = request.args.get('name', default='', type=str)
+    location = request.args.get('location', default='', type=str)
+    rating = request.args.get('rating', type=float)
+    sort = request.args.get('sort', default='', type=str).lower()  # e.g., 'asc' or 'desc'
+
+    #all job_ids the user is interested in
+    user_job_ids = db.session.query(UserInterestedJob.job_id).filter_by(user_id=user_id).subquery()
+
+    #companies linked to those jobs
+    query = db.session.query(Company).join(Job, Company.company_id == Job.company_id).filter(Job.job_id.in_(user_job_ids))
+
+    # Apply optional filters
+    if name:
+        query = query.filter(Company.name.ilike(f"%{name}%"))
+    if location:
+        query = query.filter(Company.location.ilike(f"%{location}%"))
+    if rating is not None:
+        query = query.filter(Company.rating >= rating)
+    if sort == 'asc':
+        query = query.order_by(Company.name.asc())
+    elif sort == 'desc':
+        query = query.order_by(Company.name.desc())
+
+    # Get unique companies
+    companies = query.distinct().all()
+
+    return jsonify([{
+        'company_id': c.company_id,
+        'name': c.name,
+        'location': c.location,
+        'rating': c.rating
+    } for c in companies])
 
 @app.route('/search_jobs', methods=['GET'])
 def search_jobs():
